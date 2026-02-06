@@ -70,7 +70,7 @@ npm run format
 
 ### Why Polling Instead of Webhooks?
 
-Chrome Extensions cannot listen for incoming HTTP requests. Unlike the server-based `aluku7-wq/gmail-webhook` approach, we use `chrome.alarms` to poll the Gmail API periodically.
+Chrome Extensions cannot listen for incoming HTTP requests. Unlike the server-based approach, e.g. `aluku7-wq/gmail-webhook`, we use `chrome.alarms` to poll the Gmail API periodically.
 
 **Trade-off:**
 - ✅ No external dependencies (no ngrok, no server)
