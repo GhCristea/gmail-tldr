@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gmail TLDR</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Gmail TLDR</h1>
+            <p class="subtitle">Smart email processing</p>
+        </header>
+
+        <div class="status-section">
+            <div class="status-indicator" id="statusIndicator"></div>
+            <span id="statusText">Initializing...</span>
+            <button id="syncNowBtn" class="btn btn-primary">Sync Now</button>
+        </div>
+
+        <div class="emails-section">
+            <h2>Recent Emails</h2>
+            <div id="emailsList" class="emails-list"></div>
+            <div id="emptyState" class="empty-state">
+                <p>No emails processed yet</p>
+            </div>
+        </div>
+
+        <footer>
+            <button id="clearBtn" class="btn btn-secondary">Clear History</button>
+            <a href="https://github.com/GhCristea/gmail-tldr" target="_blank" class="btn btn-link">GitHub</a>
+        </footer>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>
