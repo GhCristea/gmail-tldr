@@ -148,7 +148,7 @@ async function checkGmailForNewMessages(interactive: boolean = false): Promise<v
       // Show notification
       chrome.notifications.create({
         type: "basic",
-        iconUrl: "icon-128.png",
+        iconUrl: "icon128.png",
         title: "Gmail TLDR",
         message: `${newEmails.length} new email(s) processed`,
       });
