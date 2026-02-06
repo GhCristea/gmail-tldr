@@ -1,4 +1,4 @@
-import type { Message, Sender, Receiver } from "./types";
+import type { Message, Sender, Receiver } from "./types.js";
 
 /**
  * Type-safe message sender
@@ -6,7 +6,7 @@ import type { Message, Sender, Receiver } from "./types";
  */
 export function sendMessage<
   From extends Sender = Sender,
-  To extends Receiver<From> = Receiver<From>
+  To extends Receiver<From> = Receiver<From>,
 >(message: Message<From, To>): Promise<any> {
   return chrome.runtime.sendMessage(message);
 }
@@ -17,7 +17,7 @@ export function sendMessage<
  */
 export function listenForMessages<
   From extends Sender = Sender,
-  To extends Receiver<From> = Receiver<From>
+  To extends Receiver<From> = Receiver<From>,
 >(handler: (message: Message<From, To>, sender: chrome.runtime.MessageSender) => void) {
   chrome.runtime.onMessage.addListener(handler);
 }
@@ -27,7 +27,7 @@ export function listenForMessages<
  */
 export function sendMessageToTab<
   From extends Sender = Sender,
-  To extends Receiver<From> = Receiver<From>
+  To extends Receiver<From> = Receiver<From>,
 >(tabId: number, message: Message<From, To>): Promise<any> {
   return chrome.tabs.sendMessage(tabId, message);
 }

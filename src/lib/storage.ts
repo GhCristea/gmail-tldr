@@ -2,8 +2,8 @@ import {
   STORAGE_KEY_HISTORY_ID,
   STORAGE_KEY_LAST_SYNC,
   STORAGE_KEY_SYNC_STATUS,
-} from "./constants";
-import type { SyncStatus } from "./types";
+} from "./constants.js";
+import type { SyncStatus } from "./types.js";
 
 /**
  * Chrome storage utilities

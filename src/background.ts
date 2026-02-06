@@ -5,23 +5,23 @@ import {
   SYNC_STATUS,
   ALARM_GMAIL_CHECK,
   POLLING_INTERVAL_MINUTES,
-} from "./lib/constants";
-import type { Message, EmailSummary, SyncStatus } from "./lib/types";
-import { sendMessage, listenForMessages } from "./lib/messaging";
-import { logger } from "./lib/logger";
+} from "./lib/constants.js";
+import type { Message, EmailSummary, SyncStatus } from "./lib/types.js";
+import { sendMessage, listenForMessages } from "./lib/messaging.js";
+import { logger } from "./lib/logger.js";
 import {
   getAuthToken,
   getUserProfile,
   getHistoryChanges,
   getFullMessage,
   extractEmailData,
-} from "./lib/gmail";
+} from "./lib/gmail.js";
 import {
   getStoredHistoryId,
   saveHistoryId,
   setSyncStatus,
   getSyncStatus,
-} from "./lib/storage";
+} from "./lib/storage.js";
 
 /**
  * Gmail TLDR Service Worker
@@ -44,7 +44,7 @@ chrome.runtime.onInstalled.addListener(() => {
  */
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === ALARM_GMAIL_CHECK) {
-    checkGmailForNewMessages();
+    checkGmailForNewMessages(false);
   }
 });
 
@@ -54,7 +54,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 listenForMessages<typeof POPUP, typeof SERVICE_WORKER>((message, sender) => {
   if (message.type === "TRIGGER_SYNC_NOW") {
     logger.log("Manual sync triggered by popup");
-    checkGmailForNewMessages();
+    checkGmailForNewMessages(true);
   } else if (message.type === "CLEAR_HISTORY") {
     logger.log("Clearing history on user request");
     chrome.storage.local.clear();
@@ -64,13 +64,13 @@ listenForMessages<typeof POPUP, typeof SERVICE_WORKER>((message, sender) => {
 /**
  * Main function: check Gmail for new messages
  */
-async function checkGmailForNewMessages(): Promise<void> {
+async function checkGmailForNewMessages(interactive: boolean = false): Promise<void> {
   try {
     await setSyncStatus("syncing");
     logger.log("Starting email sync...");
 
     // Get auth token
-    const token = await getAuthToken();
+    const token = await getAuthToken(interactive);
 
     // Get current history ID
     let historyId = await getStoredHistoryId();
@@ -157,7 +157,10 @@ async function checkGmailForNewMessages(): Promise<void> {
     await setSyncStatus("idle");
     logger.log(`Sync complete. Processed ${newEmails.length} emails`);
   } catch (error) {
-    logger.error("Error during Gmail sync:", error);
+    logger.error(
+      "Error during Gmail sync:",
+      JSON.stringify(error, Object.getOwnPropertyNames(error))
+    );
     await setSyncStatus("error");
   }
 }
@@ -175,19 +178,22 @@ async function broadcastToPopup(
     logger.log("Message broadcast to popup", result);
   } catch (error) {
     // Popup is likely not open, which is fine
-    logger.debug("Popup not listening (likely not open)");
+    logger.log("Popup not listening (likely not open)");
   }
 }
 
 /**
  * Cleanup: periodically trim the in-memory cache if it gets too large
  */
-setInterval(() => {
-  if (processedMessageIds.size > 5000) {
-    const array = Array.from(processedMessageIds);
-    processedMessageIds.clear();
-    // Keep only the last 2500
-    array.slice(-2500).forEach((id) => processedMessageIds.add(id));
-    logger.log("Trimmed processed message cache");
-  }
-}, 60 * 60 * 1000); // Every hour
+setInterval(
+  () => {
+    if (processedMessageIds.size > 5000) {
+      const array = Array.from(processedMessageIds);
+      processedMessageIds.clear();
+      // Keep only the last 2500
+      array.slice(-2500).forEach((id) => processedMessageIds.add(id));
+      logger.log("Trimmed processed message cache");
+    }
+  },
+  60 * 60 * 1000
+); // Every hour

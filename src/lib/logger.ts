@@ -17,9 +17,4 @@ export const logger = {
   error: (message: string, error?: any) => {
     console.error(`${PREFIX} ${message}`, error);
   },
-  debug: (message: string, data?: any) => {
-    if (process.env.DEBUG) {
-      console.debug(`${PREFIX} ${message}`, data);
-    }
-  },
 };

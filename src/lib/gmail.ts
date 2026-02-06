@@ -1,5 +1,5 @@
-import { GMAIL_API_BASE } from "./constants";
-import type { EmailSummary, GmailMessage, GmailHistory } from "./types";
+import { GMAIL_API_BASE } from "./constants.js";
+import type { EmailSummary, GmailMessage, GmailHistory } from "./types.js";
 
 /**
  * Gmail API utilities
@@ -9,13 +9,11 @@ import type { EmailSummary, GmailMessage, GmailHistory } from "./types";
 /**
  * Get OAuth 2.0 access token from Chrome identity API
  */
-export async function getAuthToken(): Promise<string> {
+export async function getAuthToken(interactive: boolean = false): Promise<string> {
   return new Promise((resolve, reject) => {
-    chrome.identity.getAuthToken({ interactive: false }, (token) => {
+    chrome.identity.getAuthToken({ interactive }, (token) => {
       if (chrome.runtime.lastError || !token) {
-        reject(
-          chrome.runtime.lastError || new Error("Failed to get auth token")
-        );
+        reject(chrome.runtime.lastError || new Error("Failed to get auth token"));
       } else {
         resolve(token);
       }
@@ -44,7 +42,7 @@ async function fetchGmail<T = any>(
     throw new Error(`Gmail API error: ${response.status} ${response.statusText}`);
   }
 
-  return response.json();
+  return response.json() as T;
 }
 
 /**
@@ -158,10 +156,7 @@ function decodeBase64(data: string): string {
 /**
  * Mark message as read
  */
-export async function markAsRead(
-  token: string,
-  messageId: string
-): Promise<void> {
+export async function markAsRead(token: string, messageId: string): Promise<void> {
   await fetchGmail(`users/me/messages/${messageId}/modify`, token, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

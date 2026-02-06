@@ -5,7 +5,7 @@ import type {
   NEW_EMAILS,
   TRIGGER_SYNC_NOW,
   CLEAR_HISTORY,
-} from "./constants";
+} from "./constants.js";
 
 /**
  * Email data extracted from Gmail API
@@ -29,9 +29,7 @@ export type SyncStatus = "syncing" | "idle" | "error";
 /**
  * Payload wrapper for success or error
  */
-export type Payload<T> = 
-  | { data: T; error?: null }
-  | { data?: null; error: string };
+export type Payload<T> = { data: T; error?: null } | { data?: null; error: string };
 
 export type SuccessPayload<T> = { data: T; error?: null };
 export type ErrorPayload = { data?: null; error: string };
@@ -42,7 +40,7 @@ export type ErrorPayload = { data?: null; error: string };
  */
 export type MessageMap = {
   [SERVICE_WORKER]: {
-    [POPUP]: 
+    [POPUP]:
       | ({
           type: typeof SYNC_STATUS;
         } & Payload<{ status: SyncStatus; timestamp: number }>)
@@ -51,7 +49,7 @@ export type MessageMap = {
         } & Payload<EmailSummary[]>);
   };
   [POPUP]: {
-    [SERVICE_WORKER]: 
+    [SERVICE_WORKER]:
       | {
           type: typeof TRIGGER_SYNC_NOW;
         }
@@ -72,7 +70,7 @@ export type Receiver<T extends Sender> = keyof MessageMap[T];
  */
 export type Message<
   From extends Sender,
-  To extends Receiver<From> = Receiver<From>
+  To extends Receiver<From> = Receiver<From>,
 > = MessageMap[From][To];
 
 /**

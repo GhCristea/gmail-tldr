@@ -3,11 +3,12 @@
   "version": "1.0.0",
   "description": "Chrome Extension MV3 for Gmail email processing",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && cp static/* dist/",
     "watch": "tsc --watch",
     "lint": "eslint src/**/*.ts",
     "test": "jest",
-    "format": "prettier --write src/**/*.ts"
+    "format": "prettier --write src/**/*.ts",
+    "clean": "rm -rf dist"
   },
   "dependencies": {},
   "devDependencies": {

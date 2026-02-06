@@ -5,11 +5,11 @@ import {
   SYNC_STATUS,
   TRIGGER_SYNC_NOW,
   CLEAR_HISTORY,
-} from "./lib/constants";
-import type { Message, EmailSummary, SyncStatus } from "./lib/types";
-import { sendMessage, listenForMessages } from "./lib/messaging";
-import { getSyncStatus } from "./lib/storage";
-import { logger } from "./lib/logger";
+} from "./lib/constants.js";
+import type { EmailSummary, SyncStatus } from "./lib/types.js";
+import { sendMessage, listenForMessages } from "./lib/messaging.js";
+import { getSyncStatus } from "./lib/storage.js";
+import { logger } from "./lib/logger.js";
 
 /**
  * Popup UI controller
@@ -135,10 +135,11 @@ function escapeHtml(text: string): string {
  */
 async function triggerManualSync(): Promise<void> {
   try {
-    const message: Message<typeof POPUP, typeof SERVICE_WORKER> = {
+    const message = {
       type: TRIGGER_SYNC_NOW,
-    };
-    await sendMessage(message);
+    } as const;
+
+    await sendMessage<typeof POPUP, typeof SERVICE_WORKER>(message);
     logger.log("Manual sync triggered");
   } catch (error) {
     logger.error("Error triggering sync:", error);
@@ -151,10 +152,10 @@ async function triggerManualSync(): Promise<void> {
 async function clearHistory(): Promise<void> {
   if (confirm("Clear all history? This will reset the next sync.")) {
     try {
-      const message: Message<typeof POPUP, typeof SERVICE_WORKER> = {
+      const message = {
         type: CLEAR_HISTORY,
-      };
-      await sendMessage(message);
+      } as const;
+      await sendMessage<typeof POPUP, typeof SERVICE_WORKER>(message);
       currentEmails = [];
       DOM.emailsList.innerHTML = "";
       DOM.emptyState.style.display = "flex";
