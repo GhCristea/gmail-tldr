@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "Gmail TLDR",
+  "version": "1.0.0",
+  "description": "Chrome Extension MV3 for Gmail email processing with AI-powered summaries",
+  "permissions": [
+    "identity",
+    "alarms",
+    "storage",
+    "notifications"
+  ],
+  "host_permissions": [
+    "https://www.googleapis.com/"
+  ],
+  "background": {
+    "service_worker": "dist/background.js"
+  },
+  "action": {
+    "default_popup": "dist/popup.html"
+  },
+  "oauth2": {
+    "client_id": "YOUR_EXTENSION_CLIENT_ID.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/gmail.readonly",
+      "https://www.googleapis.com/auth/gmail.modify"
+    ]
+  }
+}
