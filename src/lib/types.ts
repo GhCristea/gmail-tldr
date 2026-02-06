@@ -7,9 +7,6 @@ import type {
   CLEAR_HISTORY,
 } from "./constants.js";
 
-/**
- * Email data extracted from Gmail API
- */
 export type EmailSummary = {
   id: string;
   threadId: string;
@@ -21,23 +18,13 @@ export type EmailSummary = {
   labels?: string[];
 };
 
-/**
- * Sync status type
- */
 export type SyncStatus = "syncing" | "idle" | "error";
 
-/**
- * Payload wrapper for success or error
- */
 export type Payload<T> = { data: T; error?: null } | { data?: null; error: string };
 
 export type SuccessPayload<T> = { data: T; error?: null };
 export type ErrorPayload = { data?: null; error: string };
 
-/**
- * Message contract: who talks to whom and what they say
- * Using discriminated unions for type safety
- */
 export type MessageMap = {
   [SERVICE_WORKER]: {
     [POPUP]:
@@ -59,23 +46,14 @@ export type MessageMap = {
   };
 };
 
-/**
- * Sender and receiver types for type-safe messaging
- */
 export type Sender = keyof MessageMap;
 export type Receiver<T extends Sender> = keyof MessageMap[T];
 
-/**
- * Generic message type that enforces contract
- */
 export type Message<
   From extends Sender,
   To extends Receiver<From> = Receiver<From>,
 > = MessageMap[From][To];
 
-/**
- * Gmail API history response
- */
 export type GmailHistory = {
   history?: Array<{
     id: string;
@@ -94,9 +72,6 @@ export type GmailHistory = {
   historyId?: string;
 };
 
-/**
- * Gmail API message response
- */
 export type GmailMessage = {
   id: string;
   threadId: string;

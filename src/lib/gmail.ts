@@ -1,19 +1,12 @@
 import { GMAIL_API_BASE } from "./constants.js";
 import type { EmailSummary, GmailMessage, GmailHistory } from "./types.js";
 
-/**
- * Gmail API utilities
- * Handles authentication, fetching, and email parsing
- */
-
-/**
- * Get OAuth 2.0 access token from Chrome identity API
- */
 export async function getAuthToken(interactive: boolean = false): Promise<string> {
   return new Promise((resolve, reject) => {
     chrome.identity.getAuthToken({ interactive }, (token) => {
-      if (chrome.runtime.lastError || !token) {
-        reject(chrome.runtime.lastError || new Error("Failed to get auth token"));
+      const lastError = chrome.runtime.lastError;
+      if (lastError || !token) {
+        reject(new Error(lastError?.message || "Failed to get auth token"));
       } else {
         resolve(token);
       }
@@ -21,10 +14,7 @@ export async function getAuthToken(interactive: boolean = false): Promise<string
   });
 }
 
-/**
- * Fetch from Gmail API with auth header
- */
-async function fetchGmail<T = any>(
+async function fetchGmail<T>(
   endpoint: string,
   token: string,
   options: RequestInit = {}
@@ -45,19 +35,12 @@ async function fetchGmail<T = any>(
   return response.json() as T;
 }
 
-/**
- * Get Gmail user profile to retrieve current historyId
- */
 export async function getUserProfile(
   token: string
 ): Promise<{ historyId: string; emailAddress: string }> {
   return fetchGmail("users/me/profile", token);
 }
 
-/**
- * Get history changes since a given historyId
- * Returns messages that were added
- */
 export async function getHistoryChanges(
   token: string,
   startHistoryId: string
@@ -69,9 +52,6 @@ export async function getHistoryChanges(
   return fetchGmail(`users/me/history?${params.toString()}`, token);
 }
 
-/**
- * Get full message details by ID
- */
 export async function getFullMessage(
   token: string,
   messageId: string
@@ -79,9 +59,6 @@ export async function getFullMessage(
   return fetchGmail(`users/me/messages/${messageId}?format=full`, token);
 }
 
-/**
- * Extract email data from Gmail message
- */
 export function extractEmailData(message: GmailMessage): EmailSummary {
   const headers = message.payload.headers || [];
   const subject = headers.find((h) => h.name === "Subject")?.value || "(No Subject)";
@@ -101,61 +78,6 @@ export function extractEmailData(message: GmailMessage): EmailSummary {
   };
 }
 
-/**
- * Recursively extract plain text from email payload
- */
-export function extractBody(payload: any): string {
-  try {
-    // If there's body data at this level
-    if (payload.body?.data) {
-      return decodeBase64(payload.body.data);
-    }
-
-    // If there are parts, search for text/plain or text/html
-    if (payload.parts) {
-      for (const part of payload.parts) {
-        if (
-          (part.mimeType === "text/plain" || part.mimeType === "text/html") &&
-          part.body?.data
-        ) {
-          return decodeBase64(part.body.data);
-        }
-        // Recursively search nested parts
-        if (part.parts) {
-          const nested = extractBody(part);
-          if (nested && nested !== "No body content") {
-            return nested;
-          }
-        }
-      }
-    }
-
-    return "(No body content)";
-  } catch (error) {
-    console.error("Error extracting body:", error);
-    return "(Error extracting content)";
-  }
-}
-
-/**
- * Decode base64-encoded email content
- * Gmail uses URL-safe base64 (- and _ instead of + and /)
- */
-function decodeBase64(data: string): string {
-  try {
-    // Convert URL-safe base64 to standard base64
-    const base64 = data.replace(/-/g, "+").replace(/_/g, "/");
-    const decoded = atob(base64);
-    return decoded;
-  } catch (error) {
-    console.error("Error decoding base64:", error);
-    return "(Error decoding content)";
-  }
-}
-
-/**
- * Mark message as read
- */
 export async function markAsRead(token: string, messageId: string): Promise<void> {
   await fetchGmail(`users/me/messages/${messageId}/modify`, token, {
     method: "POST",

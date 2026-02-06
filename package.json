@@ -1,21 +1,28 @@
 {
   "name": "gmail-tldr",
   "version": "1.0.0",
+  "type": "module",
   "description": "Chrome Extension MV3 for Gmail email processing",
   "scripts": {
     "build": "tsc && cp static/* dist/",
     "watch": "tsc --watch",
-    "lint": "eslint src/**/*.ts",
+    "lint": "eslint .",
     "test": "jest",
-    "format": "prettier --write src/**/*.ts",
+    "format": "prettier --write",
+    "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
-  "dependencies": {},
   "devDependencies": {
+    "@eslint/js": "^9.39.2",
     "@types/chrome": "^0.0.268",
+    "@types/eslint": "^9.6.1",
     "@types/node": "^20.0.0",
-    "typescript": "^5.3.0",
+    "eslint": "^9.39.2",
+    "eslint-plugin-no-unsanitized": "^4.1.4",
+    "eslint-plugin-promise": "^7.2.1",
+    "globals": "^17.3.0",
     "prettier": "^3.1.0",
-    "eslint": "^8.55.0"
+    "typescript": "^5.3.0",
+    "typescript-eslint": "^8.54.0"
   }
 }
