@@ -1,8 +1,8 @@
 import { GMAIL_API_BASE } from "./constants.js";
 import type { EmailSummary, GmailMessage, GmailHistory } from "./types.js";
 
-export async function getAuthToken(interactive: boolean = false): Promise<string> {
-  return new Promise((resolve, reject) => {
+export async function getAuthToken(interactive: boolean = false) {
+  return new Promise<string>((resolve, reject) => {
     chrome.identity.getAuthToken({ interactive }, (token) => {
       const lastError = chrome.runtime.lastError;
       if (lastError || !token) {
@@ -14,11 +14,7 @@ export async function getAuthToken(interactive: boolean = false): Promise<string
   });
 }
 
-async function fetchGmail<T>(
-  endpoint: string,
-  token: string,
-  options: RequestInit = {}
-): Promise<T> {
+async function fetchGmail<T>(endpoint: string, token: string, options: RequestInit = {}) {
   const url = `${GMAIL_API_BASE}/${endpoint}`;
   const response = await fetch(url, {
     ...options,
@@ -78,7 +74,7 @@ export function extractEmailData(message: GmailMessage): EmailSummary {
   };
 }
 
-export async function markAsRead(token: string, messageId: string): Promise<void> {
+export async function markAsRead(token: string, messageId: string) {
   await fetchGmail(`users/me/messages/${messageId}/modify`, token, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

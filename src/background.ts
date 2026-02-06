@@ -19,7 +19,7 @@ import { getStoredHistoryId, saveHistoryId, setSyncStatus } from "./lib/storage.
 
 const processedMessageIds = new Set<string>();
 
-chrome.runtime.onInstalled.addListener((): void => {
+chrome.runtime.onInstalled.addListener(() => {
   void chrome.alarms.create(ALARM_GMAIL_CHECK, {
     periodInMinutes: POLLING_INTERVAL_MINUTES,
   });
@@ -42,7 +42,7 @@ listenForMessages<typeof POPUP, typeof SERVICE_WORKER>((message) => {
   }
 });
 
-async function checkGmailForNewMessages(interactive: boolean = false): Promise<void> {
+async function checkGmailForNewMessages(interactive: boolean = false) {
   try {
     await setSyncStatus("syncing");
     logger.log("Starting email sync...");
@@ -133,9 +133,7 @@ async function checkGmailForNewMessages(interactive: boolean = false): Promise<v
   }
 }
 
-async function broadcastToPopup(
-  message: Message<typeof SERVICE_WORKER, typeof POPUP>
-): Promise<void> {
+async function broadcastToPopup(message: Message<typeof SERVICE_WORKER, typeof POPUP>) {
   try {
     const result = await chrome.runtime.sendMessage<typeof message, unknown>(message);
     logger.log("Message broadcast to popup", result);

@@ -22,7 +22,7 @@ const DOM = {
 
 let currentEmails: EmailSummary[] = [];
 
-function init(): void {
+function init() {
   DOM.syncNowBtn.addEventListener("click", () => void triggerManualSync());
   DOM.clearBtn.addEventListener("click", () => void clearHistory());
 
@@ -41,7 +41,7 @@ function init(): void {
   void loadInitialState();
 }
 
-async function loadInitialState(): Promise<void> {
+async function loadInitialState() {
   try {
     const status = await getSyncStatus();
     updateStatus(status);
@@ -50,10 +50,10 @@ async function loadInitialState(): Promise<void> {
   }
 }
 
-function updateStatus(status: SyncStatus): void {
+function updateStatus(status: SyncStatus) {
   DOM.statusIndicator.className = `status-indicator ${status}`;
 
-  const statusText: Record<SyncStatus, string> = {
+  const statusText = {
     idle: "Idle",
     syncing: "Syncing...",
     error: "Error",
@@ -62,7 +62,7 @@ function updateStatus(status: SyncStatus): void {
   DOM.statusText.textContent = statusText[status];
 }
 
-function displayEmails(emails: EmailSummary[]): void {
+function displayEmails(emails: EmailSummary[]) {
   currentEmails = [...currentEmails, ...emails];
 
   currentEmails = currentEmails.slice(-50);
@@ -82,7 +82,7 @@ function displayEmails(emails: EmailSummary[]): void {
   });
 }
 
-function createEmailElement(email: EmailSummary): HTMLElement {
+function createEmailElement(email: EmailSummary) {
   const div = document.createElement("div");
   div.className = "email-item";
   // eslint-disable-next-line no-unsanitized/property
@@ -94,13 +94,13 @@ function createEmailElement(email: EmailSummary): HTMLElement {
   return div;
 }
 
-function escapeHtml(text: string): string {
+function escapeHtml(text: string) {
   const div = document.createElement("div");
   div.textContent = text;
   return div.innerHTML;
 }
 
-async function triggerManualSync(): Promise<void> {
+async function triggerManualSync() {
   try {
     const message = {
       type: TRIGGER_SYNC_NOW,
@@ -113,7 +113,7 @@ async function triggerManualSync(): Promise<void> {
   }
 }
 
-async function clearHistory(): Promise<void> {
+async function clearHistory() {
   if (confirm("Clear all history? This will reset the next sync.")) {
     try {
       const message = {

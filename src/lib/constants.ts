@@ -15,5 +15,3 @@ export const ALARM_GMAIL_CHECK = "checkGmail";
 export const POLLING_INTERVAL_MINUTES = 1;
 
 export const GMAIL_API_BASE = "https://gmail.googleapis.com/gmail/v1";
-
-export const EMAIL_IMPORTANCE = ["high", "medium", "low"] as const;

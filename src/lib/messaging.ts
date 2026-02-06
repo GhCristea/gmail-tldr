@@ -13,10 +13,3 @@ export function listenForMessages<
 >(handler: (message: Message<From, To>, sender: chrome.runtime.MessageSender) => void) {
   chrome.runtime.onMessage.addListener(handler);
 }
-
-export function sendMessageToTab<
-  From extends Sender = Sender,
-  To extends Receiver<From> = Receiver<From>,
->(tabId: number, message: Message<From, To>) {
-  return chrome.tabs.sendMessage(tabId, message);
-}

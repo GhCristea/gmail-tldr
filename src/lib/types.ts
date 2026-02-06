@@ -55,19 +55,19 @@ export type Message<
 > = MessageMap[From][To];
 
 export type GmailHistory = {
-  history?: Array<{
+  history?: {
     id: string;
-    messages?: Array<{
+    messages?: {
       id: string;
       threadId: string;
-    }>;
-    messagesAdded?: Array<{
+    }[];
+    messagesAdded?: {
       message: {
         id: string;
         threadId: string;
       };
-    }>;
-  }>;
+    }[];
+  }[];
   nextHistoryId?: string;
   historyId?: string;
 };
@@ -78,10 +78,10 @@ export type GmailMessage = {
   labelIds?: string[];
   snippet: string;
   payload: {
-    headers?: Array<{
+    headers?: {
       name: string;
       value: string;
-    }>;
+    }[];
     parts?: GmailMessagePart[];
     body?: {
       data?: string;
@@ -93,10 +93,10 @@ export type GmailMessage = {
 export type GmailMessagePart = {
   mimeType: string;
   filename: string;
-  headers?: Array<{
+  headers?: {
     name: string;
     value: string;
-  }>;
+  }[];
   body?: {
     data?: string;
     size?: number;
