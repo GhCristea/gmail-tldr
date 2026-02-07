@@ -85,14 +85,15 @@ async function preprocessEmailViaOffscreen(
     if (response && typeof response === 'object' && 'type' in response) {
       const msg = response as Message<typeof OFFSCREEN, typeof SERVICE_WORKER>
       if (msg.type === PROCESSED_EMAIL_RESULT && msg.data) {
+        logger.log(`✓ Preprocessing complete for ${emailId}: ${msg.data.tokens.length} tokens, ${msg.data.entities.length} entities`)
         return msg.data
       }
     }
 
-    logger.warn(`No valid response from offscreen for email ${emailId}`)
+    logger.warn(`✗ No valid response from offscreen for email ${emailId}`)
     return null
   } catch (error) {
-    logger.error(`Error preprocessing email ${emailId} via offscreen:`, error)
+    logger.error(`✗ Error preprocessing email ${emailId} via offscreen:`, error)
     return null
   }
 }
@@ -138,7 +139,7 @@ async function checkGmailForNewMessages(interactive: boolean = false) {
         }
 
         try {
-          logger.log(`Processing message: ${messageId}`)
+          logger.log(`\n━━━ Processing message: ${messageId} ━━━`)
 
           const fullMessage = await getFullMessage(token, messageId)
           const emailData = extractEmailData(fullMessage)
@@ -152,10 +153,11 @@ async function checkGmailForNewMessages(interactive: boolean = false) {
           // Pre-process email body via offscreen (Wink NLP filtering)
           const preprocessed = await preprocessEmailViaOffscreen(messageId, emailData.snippet || '')
 
-          if (preprocessed) {
+          if (preprocessed && preprocessed.tokens.length > 0) {
             // Gemini Nano: Summarize filtered text
+            const filteredText = preprocessed.tokens.join(' ')
             logger.log(`Calling Gemini Nano for email ${messageId}...`)
-            const summaryResult = await gemini.summarize(preprocessed.tokens.join(' '), {
+            const summaryResult = await gemini.summarize(filteredText, {
               subject: emailData.subject,
               from: emailData.from
             })
@@ -166,12 +168,20 @@ async function checkGmailForNewMessages(interactive: boolean = false) {
               nlpLabels: preprocessed.entities,
               tokensUsed: summaryResult.tokensUsed
             })
+            logger.log(`✓ Summary attached: ${summaryResult.text.substring(0, 60)}...`)
+          } else {
+            logger.warn(`⚠ Preprocessing returned empty or failed for ${messageId}, skipping Gemini`)
+            Object.assign(emailData, {
+              summary: '(Preprocessing failed)',
+              nlpLabels: [],
+              tokensUsed: 0
+            })
           }
 
           newEmails.push(emailData)
           processedMessageIds.add(messageId)
         } catch (error) {
-          logger.error(`Error processing message ${messageId}:`, error)
+          logger.error(`✗ Error processing message ${messageId}:`, error)
         }
       }
     }
@@ -193,7 +203,7 @@ async function checkGmailForNewMessages(interactive: boolean = false) {
     }
 
     await setSyncStatus('idle')
-    logger.log(`Sync complete. Processed ${newEmails.length} emails`)
+    logger.log(`\n✓ Sync complete. Processed ${newEmails.length} emails`)
   } catch (error) {
     logger.error('Error during Gmail sync:', JSON.stringify(error, Object.getOwnPropertyNames(error)))
     await setSyncStatus('error')
