@@ -54,6 +54,8 @@ function init() {
       }
     } else if (message.type === PRIVACY_STATUS && message.data) {
       updatePrivacyUI(message.data);
+      // Cache latest state
+      chrome.storage.local.set({ 'cached_privacy_state': message.data }).catch(() => {});
     }
   })
 
@@ -68,6 +70,12 @@ async function loadInitialState() {
     const storedEmails = await getStoredEmails()
     if (storedEmails.length > 0) {
       displayEmails(storedEmails)
+    }
+
+    // Load cached privacy state immediately
+    const cached = await chrome.storage.local.get('cached_privacy_state');
+    if (cached['cached_privacy_state']) {
+       updatePrivacyUI(cached['cached_privacy_state'] as any);
     }
 
     await requestPrivacyStatus();

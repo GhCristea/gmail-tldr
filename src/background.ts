@@ -70,8 +70,14 @@ listenForMessages<typeof POPUP, typeof SERVICE_WORKER>(
     } else if (message.type === 'DELETE_ALL_LOCAL_DATA') {
       void (async () => {
         logger.log('Deleting all local data (storage + SQLite)');
-        await clearAll();        // chrome.storage.local
-        await clearAllDbData();  // SQLite
+        try {
+          await clearAllDbData();  // Try SQLite first (more likely to fail if offscreen dead)
+          await clearAll();        // Then chrome.storage.local
+          logger.log('Successfully deleted all local data');
+        } catch (err) {
+          logger.error('Failed to atomic delete all data', err);
+          // In a real app we might retry or alert the user
+        }
         await sendPrivacyStatus();
       })();
     }
@@ -200,6 +206,7 @@ async function processMessages(token: string, messages: { id: string; threadId: 
   const results: EmailSummary[] = []
   const nlpEnabled = await getNlpDaemonEnabled();
 
+  // TODO: Batch DB insertions if performance becomes an issue (DB/BATCH_INSERT)
   for (const msg of messages) {
     try {
       const fullMsg = await fetchMessageDetails(token, msg.id)
