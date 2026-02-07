@@ -1,4 +1,4 @@
-import type { Message, Sender, Receiver } from './types.js'
+import type { Message, Sender, Receiver } from './types'
 
 export function sendMessage<
   From extends Sender = Sender,

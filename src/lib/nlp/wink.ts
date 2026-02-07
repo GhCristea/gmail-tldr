@@ -1,6 +1,6 @@
 import winkNLP, { WinkMethods } from 'wink-nlp'
 import model from 'wink-eng-lite-web-model'
-import { logger } from '../logger.js'
+import { logger } from '../logger'
 
 let nlp: WinkMethods | null = null
 

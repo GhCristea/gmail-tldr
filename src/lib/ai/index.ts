@@ -1,2 +1,2 @@
-export * from './types.js'
-export { GeminiNanoService } from './gemini.js'
+export * from './types'
+export { GeminiNanoService } from './gemini'

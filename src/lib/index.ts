@@ -1,3 +1,3 @@
-export * from './constants.js'
-export * from './types.js'
-export * from './messaging.js'
+export * from './constants'
+export * from './types'
+export * from './messaging'

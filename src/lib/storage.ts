@@ -3,8 +3,8 @@ import {
   STORAGE_KEY_HISTORY_ID,
   STORAGE_KEY_LAST_SYNC,
   STORAGE_KEY_SYNC_STATUS
-} from './constants.js'
-import type { EmailSummary, SyncStatus } from './types.js'
+} from './constants'
+import type { EmailSummary, SyncStatus } from './types'
 
 export async function getStoredHistoryId() {
   const result = await chrome.storage.local.get(STORAGE_KEY_HISTORY_ID)

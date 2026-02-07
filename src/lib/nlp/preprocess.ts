@@ -1,5 +1,5 @@
-import { logger } from '../logger.js'
-import { getNLP } from './wink.js'
+import { logger } from '../logger'
+import { getNLP } from './wink'
 
 export interface PreprocessResult {
   email_text_filtered: string
