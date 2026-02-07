@@ -54,7 +54,10 @@ async function sendDbCommand<T>(
 
   return new Promise((resolve, reject) => {
     chrome.runtime.sendMessage(message, (response: DatabaseResponse<T>) => {
+      // Handle zombie offscreen case: runtime.lastError often means target not found
       if (chrome.runtime.lastError) {
+        // If we failed, force-close and let the next attempt recreate it
+        chrome.offscreen.closeDocument().catch(() => {});
         return reject(new Error(chrome.runtime.lastError.message));
       }
       if (!response) {
