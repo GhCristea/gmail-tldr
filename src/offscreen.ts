@@ -14,7 +14,7 @@ listenForMessages<typeof SERVICE_WORKER, typeof OFFSCREEN>((message, _sender, se
   }
 })
 
-async function processEmail(id: string, text: string, sendResponse: (response?: unknown) => void) {
+function processEmail(id: string, text: string, sendResponse: (response?: unknown) => void) {
   logger.log(`[OFFSCREEN] Processing email ${id}...`)
   try {
     // Note: preprocessEmailForLLM now initializes Wink NLP internally
