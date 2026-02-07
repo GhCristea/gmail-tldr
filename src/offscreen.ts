@@ -1,19 +1,20 @@
 import { OFFSCREEN, SERVICE_WORKER, PROCESS_EMAIL, PROCESSED_EMAIL_RESULT } from './lib/constants.js'
-import { listenForMessages, sendMessage } from './lib/messaging.js'
+import { listenForMessages } from './lib/messaging.js'
 import { logger } from './lib/logger.js'
 import { preprocessEmailForLLM } from './lib/nlp/preprocess.js'
 
 logger.log('Offscreen document initialized')
 
-listenForMessages<typeof SERVICE_WORKER, typeof OFFSCREEN>((message) => {
+listenForMessages<typeof SERVICE_WORKER, typeof OFFSCREEN>((message, _sender, sendResponse) => {
   if (message.type === PROCESS_EMAIL) {
     if (message.data) {
-      void processEmail(message.data.id, message.data.text)
+      void processEmail(message.data.id, message.data.text, sendResponse)
+      return true
     }
   }
 })
 
-async function processEmail(id: string, text: string) {
+function processEmail(id: string, text: string, sendResponse: (response?: unknown) => void) {
   logger.log(`[OFFSCREEN] Processing email ${id}...`)
 
   try {
@@ -36,16 +37,12 @@ async function processEmail(id: string, text: string) {
       pos: droppedSpans.map((s) => s.type)
     }
 
-    await sendMessage<typeof OFFSCREEN, typeof SERVICE_WORKER>({ type: PROCESSED_EMAIL_RESULT, data: result })
+    sendResponse({ type: PROCESSED_EMAIL_RESULT, data: result })
 
     logger.log(`[OFFSCREEN] Email ${id} processed and result sent back`)
   } catch (error) {
     logger.error(`[OFFSCREEN] Error processing email ${id}:`, error)
     // Send error result back
-    await sendMessage<typeof OFFSCREEN, typeof SERVICE_WORKER>({
-      type: PROCESSED_EMAIL_RESULT,
-      data: null,
-      error: String(error)
-    })
+    sendResponse({ type: PROCESSED_EMAIL_RESULT, data: null, error: String(error) })
   }
 }

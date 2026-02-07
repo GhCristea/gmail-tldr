@@ -85,7 +85,9 @@ async function preprocessEmailViaOffscreen(
     if (response && typeof response === 'object' && 'type' in response) {
       const msg = response as Message<typeof OFFSCREEN, typeof SERVICE_WORKER>
       if (msg.type === PROCESSED_EMAIL_RESULT && msg.data) {
-        logger.log(`✓ Preprocessing complete for ${emailId}: ${msg.data.tokens.length} tokens, ${msg.data.entities.length} entities`)
+        logger.log(
+          `✓ Preprocessing complete for ${emailId}: ${msg.data.tokens.length} tokens, ${msg.data.entities.length} entities`
+        )
         return msg.data
       }
     }
@@ -171,11 +173,7 @@ async function checkGmailForNewMessages(interactive: boolean = false) {
             logger.log(`✓ Summary attached: ${summaryResult.text.substring(0, 60)}...`)
           } else {
             logger.warn(`⚠ Preprocessing returned empty or failed for ${messageId}, skipping Gemini`)
-            Object.assign(emailData, {
-              summary: '(Preprocessing failed)',
-              nlpLabels: [],
-              tokensUsed: 0
-            })
+            Object.assign(emailData, { summary: '(Preprocessing failed)', nlpLabels: [], tokensUsed: 0 })
           }
 
           newEmails.push(emailData)

@@ -9,7 +9,11 @@ export function sendMessage<
 }
 
 export function listenForMessages<From extends Sender = Sender, To extends Receiver<From> = Receiver<From>>(
-  handler: (message: Message<From, To>, sender: chrome.runtime.MessageSender) => void
+  handler: (
+    message: Message<From, To>,
+    sender: chrome.runtime.MessageSender,
+    sendResponse: (response?: unknown) => void
+  ) => void | boolean
 ) {
   chrome.runtime.onMessage.addListener(handler)
 }

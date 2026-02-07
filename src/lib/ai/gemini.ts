@@ -134,7 +134,10 @@ export class GeminiNanoService {
     } catch (error) {
       logger.error('Gemini summarization failed:', error)
       // Return a fallback so popup doesn't show "(No summary)"
-      return { text: `(Summary failed: ${error instanceof Error ? error.message : 'Unknown error'})`, tokensUsed: 0 }
+      return {
+        text: `(Summary failed: ${error instanceof Error ? error.message : 'Unknown error'})`,
+        tokensUsed: 0
+      }
     }
   }
 
