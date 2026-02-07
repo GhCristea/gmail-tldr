@@ -1,137 +1,124 @@
-import type { DatabaseMessage, DatabaseResponse, EmailKeyPoint } from './types';
+import type {
+  DatabaseMessage,
+  DatabaseResponse,
+} from './types/messages';
+import type {
+  EmailMetadata,
+  RecentSummariesResult,
+} from './types/db';
 
-let offscreenCreating = false;
+const OFFSCREEN_URL = chrome.runtime.getURL('static/offscreen.html');
 
-/**
- * Ensure Offscreen document exists (KISS: simple race condition lock)
- */
-async function ensureOffscreenDocument(): Promise<void> {
-  const offscreenPath = chrome.runtime.getURL('static/offscreen.html');
+let offscreenCreation: Promise<void> | null = null;
 
-  const existingContexts = await chrome.runtime.getContexts({
-    contextTypes: [chrome.runtime.ContextType.OFFSCREEN_DOCUMENT],
-    documentUrls: [offscreenPath]
+async function ensureOffscreenReady(): Promise<void> {
+  if (offscreenCreation) {
+    return offscreenCreation;
+  }
+
+  offscreenCreation = (async () => {
+    const maxAttempts = 3;
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const contexts = await chrome.runtime.getContexts({
+        contextTypes: [chrome.runtime.ContextType.OFFSCREEN_DOCUMENT],
+        documentUrls: [OFFSCREEN_URL],
+      });
+
+      if (contexts.length > 0) return;
+
+      try {
+        await chrome.offscreen.createDocument({
+          url: 'static/offscreen.html',
+          reasons: [chrome.offscreen.Reason.WORKERS],
+          justification:
+            'Wink NLP preprocessing and local SQLite storage for Gmail summaries',
+        });
+        return;
+      } catch (err) {
+        if (attempt === maxAttempts - 1) throw err;
+        const backoffMs = 200 * Math.pow(2, attempt);
+        await new Promise(r => setTimeout(r, backoffMs));
+      }
+    }
+  })().finally(() => {
+    offscreenCreation = null;
   });
 
-  if (existingContexts.length > 0) return;
-
-  if (offscreenCreating) {
-    while (offscreenCreating) await new Promise(r => setTimeout(r, 50));
-    return;
-  }
-
-  offscreenCreating = true;
-  try {
-    await chrome.offscreen.createDocument({
-      url: 'static/offscreen.html',
-      reasons: [chrome.offscreen.Reason.WORKERS],
-      justification: 'SQLite persistence for email key-points with privacy controls'
-    });
-    console.log('[BG] Offscreen document created');
-  } catch (err) {
-    console.error('[BG] Offscreen creation failed:', err);
-  } finally {
-    offscreenCreating = false;
-  }
+  return offscreenCreation;
 }
 
-/**
- * Type-safe wrapper: Send DB command to Offscreen
- */
-export async function sendDatabaseCommand<T>(
-  message: DatabaseMessage
+async function sendDbCommand<T>(
+  message: DatabaseMessage,
 ): Promise<T> {
-  await ensureOffscreenDocument();
+  await ensureOffscreenReady();
 
   return new Promise((resolve, reject) => {
     chrome.runtime.sendMessage(message, (response: DatabaseResponse<T>) => {
       if (chrome.runtime.lastError) {
-        reject(new Error(chrome.runtime.lastError.message));
-      } else if (!response?.success) {
-        reject(new Error(`[${response?.code ?? 'UNKNOWN'}] ${response?.error ?? 'Unknown error'}`));
-      } else {
-        resolve(response.data);
+        return reject(new Error(chrome.runtime.lastError.message));
       }
+      if (!response) {
+        return reject(new Error('No response from DB offscreen daemon'));
+      }
+      if (!response.success) {
+        return reject(new Error(response.error));
+      }
+      resolve(response.data);
     });
   });
 }
 
-/**
- * Store email key-point in persistent storage
- */
-export async function storeEmailKeyPoint(
-  emailId: string,
-  subject: string,
-  keyPoint: string,
-  source: 'wink-nlp' | 'gemini-nano',
-  confidence: number,
-  tags: string[]
+// High-level DB API
+
+export async function queueEmailMetadata(
+  meta: EmailMetadata,
 ): Promise<void> {
-  const kp: EmailKeyPoint = {
-    id: crypto.randomUUID(),
-    emailId,
-    keyPoint,
-    extractedAt: Date.now(),
-    source,
-    confidence,
-    tags
-  };
-
-  await sendDatabaseCommand({
-    action: 'DB_INSERT_KEYPOINT',
-    payload: kp
-  });
-
-  console.log(`[BG] Stored key-point for email ${emailId}`);
-}
-
-/**
- * Query key-points for specific email
- */
-export async function queryEmailKeyPoints(emailId: string): Promise<EmailKeyPoint[]> {
-  return sendDatabaseCommand({
-    action: 'DB_QUERY_KEYPOINTS',
-    emailId
+  await sendDbCommand<null>({
+    type: 'DB/QUEUE_EMAIL_METADATA',
+    payload: meta,
   });
 }
 
-/**
- * Delete email and associated key-points
- */
-export async function deleteEmailData(emailId: string): Promise<number> {
-  const result = await sendDatabaseCommand<{ deletedCount: number }>({
-    action: 'DB_DELETE_EMAIL',
-    emailId
-  });
-  return result.deletedCount;
-}
-
-/**
- * Export all data for user audit
- */
-export async function exportData(format: 'json' | 'csv'): Promise<string> {
-  return sendDatabaseCommand({
-    action: 'DB_EXPORT_DATA',
-    format
+export async function storeEmailSummary(params: {
+  messageId: string;
+  summary: string;
+  labels: string[];
+  tokensUsed: number;
+}): Promise<void> {
+  await sendDbCommand<null>({
+    type: 'DB/STORE_SUMMARY',
+    payload: {
+      messageId: params.messageId,
+      summary: params.summary,
+      labels: params.labels,
+      tokensUsed: params.tokensUsed,
+      processedAt: Date.now(),
+    },
   });
 }
 
-/**
- * Get privacy stats
- */
-export async function getDBStats() {
-  return sendDatabaseCommand({
-    action: 'DB_STATS'
+export async function listRecentSummaries(
+  limit = 20,
+): Promise<RecentSummariesResult> {
+  return sendDbCommand<RecentSummariesResult>({
+    type: 'DB/LIST_RECENT_SUMMARIES',
+    payload: { limit },
   });
 }
 
-/**
- * DANGER: Clear all local data (requires confirmation)
- */
 export async function clearAllData(): Promise<void> {
-  await sendDatabaseCommand({
-    action: 'DB_CLEAR_ALL',
-    confirmToken: 'CONFIRM_DELETE_ALL_LOCAL_DATA'
-  });
-  console.warn('[BG] All local data cleared by user request');
+  await sendDbCommand<null>({ type: 'DB/CLEAR_ALL_DATA' });
 }
+
+export async function pingDb(): Promise<boolean> {
+  try {
+    const res = await sendDbCommand<{ ok: boolean }>({
+      type: 'DB/PING',
+    });
+    return !!res.ok;
+  } catch {
+    return false;
+  }
+}
+
+export { ensureOffscreenReady };
