@@ -1,7 +1,13 @@
 {
-  "semi": true,
-  "trailingComma": "es5",
-  "singleQuote": false,
-  "printWidth": 90,
-  "tabWidth": 2
+  "semi": false,
+  "trailingComma": "none",
+  "singleQuote": true,
+  "printWidth": 115,
+  "tabWidth": 2,
+  "arrowParens": "always",
+  "objectWrap": "collapse",
+  "bracketSameLine": true,
+  "bracketSpacing": true,
+  "experimentalOperatorPosition": "start",
+  "experimentalTernaries": true
 }

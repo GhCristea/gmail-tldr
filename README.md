@@ -1,11 +1,14 @@
 # Gmail TLDR
 
-Chrome Extension (Manifest V3) for intelligent Gmail email processing with type-safe messaging architecture.
+Chrome Extension (Manifest V3) for intelligent Gmail email processing with type-safe messaging
+architecture.
 
 ## Features
 
-- **Polling-based Email Sync**: Service Worker periodically checks for new Gmail messages (1-minute intervals)
-- **Type-Safe Messaging**: Discriminated union pattern for inter-component communication (no stringly-typed messages)
+- **Polling-based Email Sync**: Service Worker periodically checks for new Gmail messages (1-minute
+  intervals)
+- **Type-Safe Messaging**: Discriminated union pattern for inter-component communication (no
+  stringly-typed messages)
 - **OAuth 2.0 Integration**: Native Chrome identity API for authentication
 - **Persistent State**: Chrome storage for `historyId` tracking
 - **Email Processing**: Extract and process new emails with full header/body support
@@ -32,6 +35,7 @@ Types (src/lib/types.ts)
 ## Setup
 
 ### Prerequisites
+
 - Node.js 18+
 - TypeScript 5.3+
 - Chrome 88+
@@ -70,9 +74,11 @@ npm run format
 
 ### Why Polling Instead of Webhooks?
 
-Chrome Extensions cannot listen for incoming HTTP requests. Unlike the server-based approach, e.g. `aluku7-wq/gmail-webhook`, we use `chrome.alarms` to poll the Gmail API periodically.
+Chrome Extensions cannot listen for incoming HTTP requests. Unlike the server-based approach, e.g.
+`aluku7-wq/gmail-webhook`, we use `chrome.alarms` to poll the Gmail API periodically.
 
 **Trade-off:**
+
 - ✅ No external dependencies (no ngrok, no server)
 - ✅ Works in sandbox (secure)
 - ✅ Lightweight (kilobytes vs megabytes)
@@ -80,27 +86,26 @@ Chrome Extensions cannot listen for incoming HTTP requests. Unlike the server-ba
 
 ### Type Safety Pattern
 
-Inspired by `GhCristea/page-highlight`, this project uses a discriminated union pattern to enforce message contracts at compile time.
+Inspired by `GhCristea/page-highlight`, this project uses a discriminated union pattern to enforce
+message contracts at compile time.
 
 ```typescript
 // Define actors
-export const SERVICE_WORKER = "SERVICE_WORKER";
-export const POPUP = "POPUP";
+export const SERVICE_WORKER = 'SERVICE_WORKER'
+export const POPUP = 'POPUP'
 
 // Define the contract
 export type MessageMap = {
   [SERVICE_WORKER]: {
-    [POPUP]: 
-      | { type: "SYNC_STATUS"; status: "syncing" | "idle" }
-      | { type: "NEW_EMAILS"; data: EmailSummary[] };
-  };
-};
+    [POPUP]: { type: 'SYNC_STATUS'; status: 'syncing' | 'idle' } | { type: 'NEW_EMAILS'; data: EmailSummary[] }
+  }
+}
 
 // Type-safe send
 sendMessage<typeof SERVICE_WORKER, typeof POPUP>(POPUP, {
-  type: "NEW_EMAILS",  // TS error if this doesn't exist in contract
+  type: 'NEW_EMAILS', // TS error if this doesn't exist in contract
   data: emails
-});
+})
 ```
 
 ## Roadmap
@@ -116,7 +121,8 @@ sendMessage<typeof SERVICE_WORKER, typeof POPUP>(POPUP, {
 - [Gmail API Documentation](https://developers.google.com/gmail/api)
 - [Chrome Extension MV3 Docs](https://developer.chrome.com/docs/extensions/mv3/)
 - [Chrome Identity API](https://developer.chrome.com/docs/extensions/reference/identity/)
-- [page-highlight](https://github.com/GhCristea/page-highlight) — Type-safe messaging pattern reference
+- [page-highlight](https://github.com/GhCristea/page-highlight) — Type-safe messaging pattern
+  reference
 
 ## License
 

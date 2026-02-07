@@ -4,130 +4,122 @@ import {
   NEW_EMAILS,
   SYNC_STATUS,
   TRIGGER_SYNC_NOW,
-  CLEAR_HISTORY,
-} from "./lib/constants.js";
-import type { EmailSummary, SyncStatus } from "./lib/types.js";
-import { sendMessage, listenForMessages } from "./lib/messaging.js";
-import { getSyncStatus } from "./lib/storage.js";
-import { logger } from "./lib/logger.js";
+  CLEAR_HISTORY
+} from './lib/constants.js'
+import type { EmailSummary, SyncStatus } from './lib/types.js'
+import { sendMessage, listenForMessages } from './lib/messaging.js'
+import { getSyncStatus } from './lib/storage.js'
+import { logger } from './lib/logger.js'
 
 const DOM = {
-  statusIndicator: document.getElementById("statusIndicator") as HTMLDivElement,
-  statusText: document.getElementById("statusText") as HTMLSpanElement,
-  syncNowBtn: document.getElementById("syncNowBtn") as HTMLButtonElement,
-  emailsList: document.getElementById("emailsList") as HTMLDivElement,
-  emptyState: document.getElementById("emptyState") as HTMLDivElement,
-  clearBtn: document.getElementById("clearBtn") as HTMLButtonElement,
-};
+  statusIndicator: document.getElementById('statusIndicator') as HTMLDivElement,
+  statusText: document.getElementById('statusText') as HTMLSpanElement,
+  syncNowBtn: document.getElementById('syncNowBtn') as HTMLButtonElement,
+  emailsList: document.getElementById('emailsList') as HTMLDivElement,
+  emptyState: document.getElementById('emptyState') as HTMLDivElement,
+  clearBtn: document.getElementById('clearBtn') as HTMLButtonElement
+}
 
-let currentEmails: EmailSummary[] = [];
+let currentEmails: EmailSummary[] = []
 
 function init() {
-  DOM.syncNowBtn.addEventListener("click", () => void triggerManualSync());
-  DOM.clearBtn.addEventListener("click", () => void clearHistory());
+  DOM.syncNowBtn.addEventListener('click', () => void triggerManualSync())
+  DOM.clearBtn.addEventListener('click', () => void clearHistory())
 
   listenForMessages<typeof SERVICE_WORKER, typeof POPUP>((message) => {
     if (message.type === SYNC_STATUS) {
       if (message.data) {
-        updateStatus(message.data.status);
+        updateStatus(message.data.status)
       }
     } else if (message.type === NEW_EMAILS) {
       if (message.data) {
-        displayEmails(message.data);
+        displayEmails(message.data)
       }
     }
-  });
+  })
 
-  void loadInitialState();
+  void loadInitialState()
 }
 
 async function loadInitialState() {
   try {
-    const status = await getSyncStatus();
-    updateStatus(status);
+    const status = await getSyncStatus()
+    updateStatus(status)
   } catch (error) {
-    logger.error("Error loading initial state:", error);
+    logger.error('Error loading initial state:', error)
   }
 }
 
 function updateStatus(status: SyncStatus) {
-  DOM.statusIndicator.className = `status-indicator ${status}`;
+  DOM.statusIndicator.className = `status-indicator ${status}`
 
-  const statusText = {
-    idle: "Idle",
-    syncing: "Syncing...",
-    error: "Error",
-  };
+  const statusText = { idle: 'Idle', syncing: 'Syncing...', error: 'Error' }
 
-  DOM.statusText.textContent = statusText[status];
+  DOM.statusText.textContent = statusText[status]
 }
 
 function displayEmails(emails: EmailSummary[]) {
-  currentEmails = [...currentEmails, ...emails];
+  currentEmails = [...currentEmails, ...emails]
 
-  currentEmails = currentEmails.slice(-50);
+  currentEmails = currentEmails.slice(-50)
 
-  DOM.emailsList.innerHTML = "";
+  DOM.emailsList.innerHTML = ''
 
   if (currentEmails.length === 0) {
-    DOM.emptyState.style.display = "flex";
-    return;
+    DOM.emptyState.style.display = 'flex'
+    return
   }
 
-  DOM.emptyState.style.display = "none";
+  DOM.emptyState.style.display = 'none'
 
   currentEmails.reverse().forEach((email) => {
-    const emailEl = createEmailElement(email);
-    DOM.emailsList.appendChild(emailEl);
-  });
+    const emailEl = createEmailElement(email)
+    DOM.emailsList.appendChild(emailEl)
+  })
 }
 
 function createEmailElement(email: EmailSummary) {
-  const div = document.createElement("div");
-  div.className = "email-item";
+  const div = document.createElement('div')
+  div.className = 'email-item'
   // eslint-disable-next-line no-unsanitized/property
   div.innerHTML = `
     <div class="email-subject" title="${escapeHtml(email.subject)}">${escapeHtml(email.subject)}</div>
     <div class="email-from">${escapeHtml(email.from)}</div>
     <div class="email-snippet">${escapeHtml(email.snippet)}</div>
-  `;
-  return div;
+  `
+  return div
 }
 
 function escapeHtml(text: string) {
-  const div = document.createElement("div");
-  div.textContent = text;
-  return div.innerHTML;
+  const div = document.createElement('div')
+  div.textContent = text
+  return div.innerHTML
 }
 
 async function triggerManualSync() {
   try {
-    const message = {
-      type: TRIGGER_SYNC_NOW,
-    } as const;
+    const message = { type: TRIGGER_SYNC_NOW } as const
 
-    await sendMessage<typeof POPUP, typeof SERVICE_WORKER>(message);
-    logger.log("Manual sync triggered");
+    await sendMessage<typeof POPUP, typeof SERVICE_WORKER>(message)
+    logger.log('Manual sync triggered')
   } catch (error) {
-    logger.error("Error triggering sync:", error);
+    logger.error('Error triggering sync:', error)
   }
 }
 
 async function clearHistory() {
-  if (confirm("Clear all history? This will reset the next sync.")) {
+  if (confirm('Clear all history? This will reset the next sync.')) {
     try {
-      const message = {
-        type: CLEAR_HISTORY,
-      } as const;
-      await sendMessage<typeof POPUP, typeof SERVICE_WORKER>(message);
-      currentEmails = [];
-      DOM.emailsList.innerHTML = "";
-      DOM.emptyState.style.display = "flex";
-      logger.log("History cleared");
+      const message = { type: CLEAR_HISTORY } as const
+      await sendMessage<typeof POPUP, typeof SERVICE_WORKER>(message)
+      currentEmails = []
+      DOM.emailsList.innerHTML = ''
+      DOM.emptyState.style.display = 'flex'
+      logger.log('History cleared')
     } catch (error) {
-      logger.error("Error clearing history:", error);
+      logger.error('Error clearing history:', error)
     }
   }
 }
 
-init();
+init()
