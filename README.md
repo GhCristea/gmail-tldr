@@ -52,6 +52,40 @@ Gmail API
       └─ Listens: for type-safe messages from Service Worker
 ```
 
+### Diagnostic Flow (If "(No summary)" Appears)
+
+**Root Causes & Fixes:**
+
+```mermaid
+graph TD
+    A["Email processed"] --> B{"Offscreen<br/>responding?"}
+    B -->|✓| C{"Gemini Nano<br/>available?"}
+    B -->|✗| B1["✗ Missing permission<br/>manifest: offscreen"]
+    B1 --> B2["✗ Reload extension<br/>or add permission"]
+    B2 --> B
+    
+    C -->|✓| D{"Summary text<br/>generated?"}
+    C -->|✗| C1["✗ Chrome version < 123<br/>OR"]
+    C1 --> C2["✗ Flag disabled:<br/>optimization-guide-on-device-model"]
+    C2 --> C3["Enable flag & restart Chrome"]
+    C3 --> C
+    
+    D -->|✓| E["Popup open?"] 
+    D -->|✗| D1["Check logs in<br/>Service Worker console"]
+    D1 --> D
+    
+    E -->|✓| F["✓ Summary displays"]
+    E -->|✗| G["Open popup &<br/>click Sync Now"]
+    G --> F
+    
+    style A fill:#e1f5ff
+    style F fill:#c8e6c9
+    style B1 fill:#ffccbc
+    style C1 fill:#ffccbc
+    style C2 fill:#ffccbc
+    style D1 fill:#ffccbc
+```
+
 ### Message Contracts
 
 **Service Worker ↔ Popup:**
