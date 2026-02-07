@@ -8,7 +8,7 @@ import type {
   CLEAR_HISTORY,
   PROCESS_EMAIL,
   PROCESSED_EMAIL_RESULT
-} from './constants.js'
+} from './constants'
 
 export type EmailSummary = {
   id: string

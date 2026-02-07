@@ -1,4 +1,4 @@
-import { ENV } from '../config.js'
+import { ENV } from '../config'
 
 const PREFIX = '[Gmail TLDR]'
 

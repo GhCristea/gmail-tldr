@@ -1,6 +1,6 @@
-import { SummaryResult, EmailContext } from './types.js'
-import { PROMPT } from '../constants.js'
-import { logger } from '../logger.js'
+import { SummaryResult, EmailContext } from './types'
+import { PROMPT } from '../constants'
+import { logger } from '../logger'
 
 declare global {
   class LanguageModel {

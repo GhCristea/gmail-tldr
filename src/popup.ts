@@ -1,15 +1,8 @@
-import {
-  SERVICE_WORKER,
-  POPUP,
-  NEW_EMAILS,
-  SYNC_STATUS,
-  TRIGGER_SYNC_NOW,
-  CLEAR_HISTORY
-} from './lib/constants.js'
-import type { EmailSummary, SyncStatus } from './lib/types.js'
-import { sendMessage, listenForMessages } from './lib/messaging.js'
-import { getSyncStatus, getStoredEmails } from './lib/storage.js'
-import { logger } from './lib/logger.js'
+import { SERVICE_WORKER, POPUP, NEW_EMAILS, SYNC_STATUS, TRIGGER_SYNC_NOW, CLEAR_HISTORY } from './lib/constants'
+import type { EmailSummary, SyncStatus } from './lib/types'
+import { sendMessage, listenForMessages } from './lib/messaging'
+import { getSyncStatus, getStoredEmails } from './lib/storage'
+import { logger } from './lib/logger'
 
 const DOM = {
   statusIndicator: document.getElementById('statusIndicator') as HTMLDivElement,

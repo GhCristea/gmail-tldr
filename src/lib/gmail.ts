@@ -1,5 +1,5 @@
-import { GMAIL_API_BASE } from './constants.js'
-import type { EmailSummary, GmailMessage, GmailHistory } from './types.js'
+import { GMAIL_API_BASE } from './constants'
+import type { EmailSummary, GmailMessage, GmailHistory } from './types'
 
 export async function getAuthToken(interactive: boolean = false) {
   return new Promise<string>((resolve, reject) => {

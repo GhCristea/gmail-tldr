@@ -6,7 +6,7 @@
   "description": "Chrome Extension MV3 for Gmail email processing with AI-powered summaries",
   "permissions": ["identity", "alarms", "storage", "notifications", "offscreen"],
   "host_permissions": ["https://www.googleapis.com/"],
-  "background": { "service_worker": "background.js", "type": "module" },
+  "background": { "service_worker": "src/background.ts", "type": "module" },
   "action": {
     "default_popup": "popup.html",
     "default_icon": {

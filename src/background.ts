@@ -9,13 +9,13 @@ import {
   PROCESSED_EMAIL_RESULT,
   OFFSCREEN_DOCUMENT_PATH,
   OFFSCREEN_REASON
-} from './lib/constants.js'
-import type { Message, EmailSummary, ProcessedEmailResult } from './lib/types.js'
-import { listenForMessages, sendMessage } from './lib/messaging.js'
-import { logger } from './lib/logger.js'
-import { getAuthToken, getUserProfile, getHistoryChanges, getFullMessage, extractEmailData } from './lib/gmail.js'
-import { getStoredHistoryId, saveHistoryId, setSyncStatus, appendNewEmails, getSyncStatus } from './lib/storage.js'
-import { GeminiNanoService } from './lib/ai/gemini.js'
+} from './lib/constants'
+import type { Message, EmailSummary, ProcessedEmailResult } from './lib/types'
+import { listenForMessages, sendMessage } from './lib/messaging'
+import { logger } from './lib/logger'
+import { getAuthToken, getUserProfile, getHistoryChanges, getFullMessage, extractEmailData } from './lib/gmail'
+import { getStoredHistoryId, saveHistoryId, setSyncStatus, appendNewEmails, getSyncStatus } from './lib/storage'
+import { GeminiNanoService } from './lib/ai/gemini'
 
 const processedMessageIds = new Set<string>()
 const gemini = new GeminiNanoService()

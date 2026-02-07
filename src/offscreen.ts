@@ -1,7 +1,7 @@
-import { OFFSCREEN, SERVICE_WORKER, PROCESS_EMAIL, PROCESSED_EMAIL_RESULT } from './lib/constants.js'
-import { listenForMessages } from './lib/messaging.js'
-import { logger } from './lib/logger.js'
-import { preprocessEmailForLLM } from './lib/nlp/preprocess.js'
+import { OFFSCREEN, SERVICE_WORKER, PROCESS_EMAIL, PROCESSED_EMAIL_RESULT } from './lib/constants'
+import { listenForMessages } from './lib/messaging'
+import { logger } from './lib/logger'
+import { preprocessEmailForLLM } from './lib/nlp/preprocess'
 
 logger.log('Offscreen document initialized')
 

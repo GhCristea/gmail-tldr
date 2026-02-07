@@ -40,7 +40,8 @@ export default defineConfig([
     }
   },
   { files: ['src/background.ts'], languageOptions: { globals: { ...globals.serviceworker } } },
-  { files: ['src/popup.ts'], languageOptions: { globals: { ...globals.browser } } },
+  { files: ['src/popup.ts', 'src/offscreen.ts'], languageOptions: { globals: { ...globals.browser } } },
+
   {
     files: ['*.config.{js,ts}'],
     languageOptions: { globals: { ...globals.node } },
