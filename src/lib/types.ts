@@ -1,10 +1,13 @@
 import type {
   SERVICE_WORKER,
   POPUP,
+  OFFSCREEN,
   SYNC_STATUS,
   NEW_EMAILS,
   TRIGGER_SYNC_NOW,
-  CLEAR_HISTORY
+  CLEAR_HISTORY,
+  PROCESS_EMAIL,
+  PROCESSED_EMAIL_RESULT,
 } from './constants.js'
 
 export type EmailSummary = {
@@ -25,13 +28,29 @@ export type Payload<T> = { data: T; error?: null } | { data?: null; error: strin
 export type SuccessPayload<T> = { data: T; error?: null }
 export type ErrorPayload = { data?: null; error: string }
 
+export type ProcessEmailPayload = {
+  id: string
+  text: string
+}
+
+export type ProcessedEmailResult = {
+  id: string
+  tokens: string[]
+  entities: string[]
+  pos: string[]
+}
+
 export type MessageMap = {
   [SERVICE_WORKER]: {
     [POPUP]:
       | ({ type: typeof SYNC_STATUS } & Payload<{ status: SyncStatus; timestamp: number }>)
       | ({ type: typeof NEW_EMAILS } & Payload<EmailSummary[]>)
+    [OFFSCREEN]: { type: typeof PROCESS_EMAIL } & Payload<ProcessEmailPayload>
   }
   [POPUP]: { [SERVICE_WORKER]: { type: typeof TRIGGER_SYNC_NOW } | { type: typeof CLEAR_HISTORY } }
+  [OFFSCREEN]: {
+    [SERVICE_WORKER]: { type: typeof PROCESSED_EMAIL_RESULT } & Payload<ProcessedEmailResult>
+  }
 }
 
 export type Sender = keyof MessageMap
