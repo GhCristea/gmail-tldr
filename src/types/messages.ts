@@ -1,19 +1,48 @@
-import type { EmailKeyPoint } from './db';
+import type { EmailMetadata, RecentSummariesResult } from './db';
 
-/**
- * Discriminated union for type-safe DB messages
- */
+export type DbInitializeMessage = {
+  type: 'DB/INITIALIZE_DB';
+};
+
+export type DbQueueEmailMetadataMessage = {
+  type: 'DB/QUEUE_EMAIL_METADATA';
+  payload: EmailMetadata;
+};
+
+export interface StoreSummaryPayload {
+  messageId: string;
+  summary: string;
+  labels: string[];
+  tokensUsed: number;
+  processedAt: number;
+}
+
+export type DbStoreSummaryMessage = {
+  type: 'DB/STORE_SUMMARY';
+  payload: StoreSummaryPayload;
+};
+
+export type DbListRecentSummariesMessage = {
+  type: 'DB/LIST_RECENT_SUMMARIES';
+  payload?: { limit?: number };
+};
+
+export type DbClearAllDataMessage = {
+  type: 'DB/CLEAR_ALL_DATA';
+};
+
+export type DbPingMessage = {
+  type: 'DB/PING';
+};
+
 export type DatabaseMessage =
-  | { action: 'DB_INSERT_KEYPOINT'; payload: EmailKeyPoint }
-  | { action: 'DB_QUERY_KEYPOINTS'; emailId: string }
-  | { action: 'DB_DELETE_EMAIL'; emailId: string }
-  | { action: 'DB_EXPORT_DATA'; format: 'json' | 'csv' }
-  | { action: 'DB_STATS' }
-  | { action: 'DB_CLEAR_ALL'; confirmToken: string };
+  | DbInitializeMessage
+  | DbQueueEmailMetadataMessage
+  | DbStoreSummaryMessage
+  | DbListRecentSummariesMessage
+  | DbClearAllDataMessage
+  | DbPingMessage;
 
-/**
- * Type-safe response wrapper
- */
-export type DatabaseResponse<T> = 
+export type DatabaseResponse<T> =
   | { success: true; data: T }
   | { success: false; error: string; code?: string };
