@@ -4,7 +4,7 @@
   "name": "Gmail TLDR",
   "version": "1.0.0",
   "description": "Chrome Extension MV3 for Gmail email processing with AI-powered summaries",
-  "permissions": ["identity", "alarms", "storage", "notifications"],
+  "permissions": ["identity", "alarms", "storage", "notifications", "offscreen"],
   "host_permissions": ["https://www.googleapis.com/"],
   "background": { "service_worker": "background.js", "type": "module" },
   "action": {
