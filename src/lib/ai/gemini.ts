@@ -3,165 +3,124 @@ import { PROMPT } from '../constants.js'
 import { logger } from '../logger.js'
 
 /**
- * Chrome's built-in AI API types (experimental)
- * Available in Chrome 123+ with chrome.ai origin trial
+ * Updated Global Type Definitions for the new Prompt API
+ * Matches your working console syntax: LanguageModel.create(...)
  */
 declare global {
-  interface Window {
-    ai?: {
-      languageModel?: {
-        capabilities(): Promise<{ available: 'readily' | 'after-download' | 'no' }>
-        create(options?: { topK?: number; temperature?: number; systemPrompt?: string }): Promise<AILanguageModel>
-      }
-    }
+  class LanguageModel {
+    static create(options?: AIModelOptions): Promise<AILanguageModel>
+    static capabilities(): Promise<AICapabilities>
   }
+
+  interface AIModelOptions {
+    systemPrompt?: string
+    expectedLanguage?: string
+    temperature?: number
+    topK?: number
+  }
+
+  interface AICapabilities {
+    available: 'readily' | 'after-download' | 'no'
+    defaultTemperature?: number
+    defaultTopK?: number
+  }
+
   interface AILanguageModel {
     prompt(text: string, options?: { signal?: AbortSignal }): Promise<string>
-    countTokens(text: string): Promise<number>
-    destroy(): Promise<void>
+    destroy(): void
+    // Note: countTokens might not be in the global LanguageModel spec yet, 
+    // keeping it simple by removing dependencies on it if not needed.
+    countTokens?(text: string): Promise<number> 
   }
 }
 
-/**
- * Gemini Nano Service - Direct implementation
- * Chrome 123+ built-in LLM
- */
 export class GeminiNanoService {
   private session: AILanguageModel | null = null
-  private config: AIConfig
-  private initPromise: Promise<void> | null = null
-
-  constructor(config: AIConfig = {}) {
-    this.config = {
-      systemPrompt:
-        'Act as a digital assistant to quickly summarize and extract key information from the given email.',
-      temperature: 0.7,
-      ...config
-    }
+  
+  // Default config with "expectedLanguage" as required by your browser
+  private config: AIModelOptions = {
+    expectedLanguage: 'en',
+    temperature: 0.7,
+    systemPrompt: 'Act as a digital assistant to quickly summarize and extract key information from the given email.'
   }
 
-  async isAvailable(): Promise<boolean> {
-    if (!self.ai?.languageModel) {
-      logger.warn('Gemini: chrome.ai.languageModel not available')
-      return false
-    }
-
-    try {
-      const caps = await self.ai.languageModel.capabilities()
-      const available = caps.available !== 'no'
-      logger.log(`Gemini capabilities: ${caps.available} (${available ? 'available' : 'unavailable'})`)
-      return available
-    } catch (error) {
-      logger.error('Gemini capabilities check failed:', error)
-      return false
-    }
+  constructor(config: Partial<AIModelOptions> = {}) {
+    this.config = { ...this.config, ...config }
   }
 
   async initialize(): Promise<void> {
-    // Prevent multiple concurrent initialization attempts
-    if (this.initPromise) {
-      return this.initPromise
-    }
-
-    if (this.session) {
-      logger.log('Gemini session already initialized')
-      return
-    }
-
-    this.initPromise = this._performInitialization()
-    return this.initPromise
-  }
-
-  private async _performInitialization(): Promise<void> {
-    logger.log('Initializing Gemini Nano service...')
-
-    const available = await this.isAvailable()
-    if (!available) {
-      const error =
-        'Gemini Nano not available. Check: (1) Chrome 123+, (2) chrome://flags/#optimization-guide-on-device-model enabled, (3) Origin Trial enabled'
-      logger.error(error)
-      throw new Error(error)
-    }
+    if (this.session) return
 
     try {
-      logger.log('Creating Gemini session with config:', this.config)
-      this.session = await self.ai!.languageModel!.create({
-        systemPrompt: this.config.systemPrompt,
-        temperature: this.config.temperature,
-        topK: this.config.topK
-      })
-      logger.log('Gemini session created successfully')
+      // Direct check for the global constructor
+      if (typeof LanguageModel === 'undefined') {
+        throw new Error('LanguageModel API is not available in this browser.')
+      }
+
+      const caps = await LanguageModel.capabilities()
+      if (caps.available === 'no') {
+        throw new Error('LanguageModel is available but model is not downloaded/ready.')
+      }
+
+      logger.log('Creating Gemini session...')
+      this.session = await LanguageModel.create(this.config)
+      logger.log('Gemini session created.')
     } catch (error) {
-      logger.error('Failed to create Gemini session:', error)
+      logger.error('Failed to initialize Gemini:', error)
       this.session = null
       throw error
     }
   }
 
   async summarize(text: string, context?: EmailContext): Promise<SummaryResult> {
-    logger.log(`Summarizing text (${text.length} chars) for email from: ${context?.from || '(unknown)'}`)
-
-    if (!text || text.trim().length === 0) {
-      logger.warn('Empty text provided to summarize')
-      return { text: '(Empty email)', tokensUsed: 0 }
-    }
+    if (!text?.trim()) return { text: '(Empty email)' }
 
     try {
-      if (!this.session) {
-        await this.initialize()
-      }
-
-      if (!this.session) {
-        throw new Error('Failed to initialize Gemini session')
-      }
+      if (!this.session) await this.initialize()
+      if (!this.session) throw new Error('Session creation failed')
 
       const prompt = this.buildPrompt(text, context)
-      logger.log(`Built prompt (${prompt.length} chars), calling Gemini...`)
-
-      // 30s timeout
-      const controller = new AbortController()
-      const timeout = setTimeout(() => controller.abort(), 30000)
-
-      try {
-        const summary = await this.session.prompt(prompt, { signal: controller.signal })
-        const tokensUsed = Math.ceil(summary.length / 0.75) // Rough estimate
-
-        logger.log(`Gemini summary received (${summary.length} chars, ~${tokensUsed} tokens)`)
-        return { text: summary.trim(), tokensUsed }
-      } finally {
-        clearTimeout(timeout)
+      
+      // Sustainable DX: standardized usage tracking
+      logger.log(`Prompting Gemini (${prompt.length} chars)...`)
+      
+      const response = await this.session.prompt(prompt)
+      const cleanResponse = response.trim()
+      
+      return { 
+        text: cleanResponse,
+        // Fallback token count if countTokens() isn't available on the global instance
+        tokensUsed: Math.ceil(cleanResponse.length / 4) 
       }
     } catch (error) {
-      logger.error('Gemini summarization failed:', error)
-      // Return a fallback so popup doesn't show "(No summary)"
-      return {
-        text: `(Summary failed: ${error instanceof Error ? error.message : 'Unknown error'})`,
-        tokensUsed: 0
-      }
+      logger.error('Summarization failed:', error)
+      // Separation of Concerns: Caller handles UI error states, we just return the error info
+      return { text: `(Error: ${error instanceof Error ? error.message : 'Unknown'})` }
     }
   }
 
+  /**
+   * Application Security: Prompt Injection Mitigation
+   * We wrap the untrusted input (email body) in XML tags so the model 
+   * distinguishes instructions from data.
+   */
   private buildPrompt(text: string, context?: EmailContext): string {
-    const parts = []
-    if (context?.subject) parts.push(`Subject: ${context.subject}`)
-    if (context?.from) parts.push(`From: ${context.from}`)
+    const meta = [
+      context?.subject ? `Subject: ${context.subject}` : '',
+      context?.from ? `From: ${context.from}` : ''
+    ].filter(Boolean).join('\n')
 
-    const contextStr = parts.length ? parts.join('\n') + '\n\n' : ''
-    const cleanText = text.slice(0, 4000) // Simple truncation
+    // Truncate to avoid context window overflow (Simplicity)
+    const cleanText = text.slice(0, 4000)
 
-    return `${contextStr}Task: ${PROMPT}\n\nEmail:\n${cleanText}`
-  }
+    return `
+${meta}
 
-  async destroy(): Promise<void> {
-    if (this.session) {
-      try {
-        await this.session.destroy()
-        logger.log('Gemini session destroyed')
-      } catch (error) {
-        logger.error('Error destroying Gemini session:', error)
-      }
-    }
-    this.session = null
-    this.initPromise = null
+Task: ${PROMPT}
+
+<email_content>
+${cleanText}
+</email_content>
+`.trim()
   }
 }
