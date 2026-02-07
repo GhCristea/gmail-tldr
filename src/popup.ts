@@ -4,7 +4,7 @@ import {
   NEW_EMAILS,
   SYNC_STATUS,
   TRIGGER_SYNC_NOW,
-  CLEAR_HISTORY
+  CLEAR_HISTORY,
 } from './lib/constants.js'
 import type { EmailSummary, SyncStatus } from './lib/types.js'
 import { sendMessage, listenForMessages } from './lib/messaging.js'
@@ -17,7 +17,7 @@ const DOM = {
   syncNowBtn: document.getElementById('syncNowBtn') as HTMLButtonElement,
   emailsList: document.getElementById('emailsList') as HTMLDivElement,
   emptyState: document.getElementById('emptyState') as HTMLDivElement,
-  clearBtn: document.getElementById('clearBtn') as HTMLButtonElement
+  clearBtn: document.getElementById('clearBtn') as HTMLButtonElement,
 }
 
 let currentEmails: EmailSummary[] = []
@@ -81,11 +81,23 @@ function displayEmails(emails: EmailSummary[]) {
 function createEmailElement(email: EmailSummary) {
   const div = document.createElement('div')
   div.className = 'email-item'
+
+  const summary = (email as any).summary || '(No summary)'
+  const nlpLabels = (email as any).nlpLabels || []
+  const tokensUsed = (email as any).tokensUsed || 0
+
+  const labelsHtml =
+    nlpLabels.length > 0
+      ? `<div class="email-labels">${nlpLabels.map((label: string) => `<span class="label">${escapeHtml(label)}</span>`).join('')}</div>`
+      : ''
+
   // eslint-disable-next-line no-unsanitized/property
   div.innerHTML = `
     <div class="email-subject" title="${escapeHtml(email.subject)}">${escapeHtml(email.subject)}</div>
     <div class="email-from">${escapeHtml(email.from)}</div>
-    <div class="email-snippet">${escapeHtml(email.snippet)}</div>
+    <div class="email-summary">${escapeHtml(summary)}</div>
+    ${labelsHtml}
+    <div class="email-meta">${tokensUsed > 0 ? `${tokensUsed} tokens` : ''}</div>
   `
   return div
 }
