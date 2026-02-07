@@ -16,89 +16,36 @@ architecture and on-device NLP-powered summarization.
 
 ### Two-Stage NLP Pipeline
 
-```
-Gmail API
-   │
-   ├─ [Service Worker] (background.ts)
-   │  ├─ Polls Gmail API every 1 minute
-   │  ├─ Fetches new messages via Gmail History API
-   │  ├─ Extracts email metadata (subject, from, to, snippet)
-   │  │
-   │  └─ For each email:
-   │     ├─ Send raw body to [Offscreen Document]
-   │     │
-   │     └─ Receive back: filtered_text + labels
-   │        ├─ Call GeminiNanoService(filtered_text)
-   │        ├─ Receive: summary
-   │        └─ Attach summary + labels to email
-   │
-   ├─ [Offscreen Document] (offscreen.ts)
-   │  ├─ Receives: raw email body
-   │  ├─ Runs: Wink NLP preprocessing
-   │  │  ├─ Pattern matching (signatures, legal, unsubscribe)
-   │  │  ├─ Strips low-signal blocks
-   │  │  └─ Tags high-signal spans (deadlines, requests)
-   │  ├─ Infers: email_labels (newsletter, transactional, actionable, etc.)
-   │  └─ Sends back: filtered_text + labels
-   │
-   ├─ [GeminiNanoService] (lib/ai/gemini.ts)
-   │  ├─ Receives: filtered_text + context (subject, from)
-   │  ├─ Calls: chrome.ai.languageModel.create().prompt()
-   │  └─ Returns: summary (1-3 sentences, action items)
-   │
-   └─ [Popup] (popup.ts)
-      ├─ Displays: sync status
-      ├─ Renders: email list with summaries + NLP labels
-      └─ Listens: for type-safe messages from Service Worker
-```
-
-### Diagnostic Flow (If "(No summary)" Appears)
-
-**Root Causes & Fixes:**
-
 ```mermaid
-graph TD
-    A["Email processed"] --> B{"Offscreen<br/>responding?"}
-    B -->|✓| C{"Gemini Nano<br/>available?"}
-    B -->|✗| B1["✗ Missing permission<br/>manifest: offscreen"]
-    B1 --> B2["✗ Reload extension<br/>or add permission"]
-    B2 --> B
+flowchart TD
+    Gmail[Gmail API]
+    subgraph ServiceWorker ["Service Worker (background.ts)"]
+        SW_Logic[Polls API & Orchestrates]
+    end
+    subgraph Offscreen ["Offscreen Document (offscreen.ts)"]
+        Off_Logic[Wink NLP Preprocessing<br/>Pattern Matching & Cleaning]
+    end
+    subgraph Gemini ["GeminiNanoService (lib/ai/gemini.ts)"]
+        AI_Logic[Chrome Built-in AI<br/>Summarization]
+    end
+    subgraph UI ["Popup (popup.ts)"]
+        Popup_Logic[Displays Status & Emails]
+    end
 
-    C -->|✓| D{"Summary text<br/>generated?"}
-    C -->|✗| C1["✗ Chrome version < 123<br/>OR"]
-    C1 --> C2["✗ Flag disabled:<br/>optimization-guide-on-device-model"]
-    C2 --> C3["Enable flag & restart Chrome"]
-    C3 --> C
+    SW_Logic -- "Polls 1 min / History API" --> Gmail
+    Gmail -- "Metadata & Content" --> SW_Logic
+    SW_Logic -- "1. Send raw body" --> Off_Logic
+    Off_Logic -- "2. Return filtered text + labels" --> SW_Logic
+    SW_Logic -- "3. Prompt (filtered)" --> AI_Logic
+    AI_Logic -- "4. Return summary" --> SW_Logic
+    SW_Logic -- "Updates" --> Popup_Logic
 
-    D -->|✓| E["Popup open?"]
-    D -->|✗| D1["Check logs in<br/>Service Worker console"]
-    D1 --> D
-
-    E -->|✓| F["✓ Summary displays"]
-    E -->|✗| G["Open popup &<br/>click Sync Now"]
-    G --> F
-
-    style A fill:#e1f5ff
-    style F fill:#c8e6c9
-    style B1 fill:#ffccbc
-    style C1 fill:#ffccbc
-    style C2 fill:#ffccbc
-    style D1 fill:#ffccbc
+    style Gmail fill:#f8d568,stroke:#c48a06,stroke-width:2px,color:#222
+    style SW_Logic fill:#a5d6a7,stroke:#388e3c,stroke-width:2px,color:#222
+    style Off_Logic fill:#81d4fa,stroke:#0277bd,stroke-width:2px,color:#222
+    style AI_Logic fill:#ffe082,stroke:#ff9800,stroke-width:2px,color:#222
+    style Popup_Logic fill:#ce93d8,stroke:#8e24aa,stroke-width:2px,color:#222
 ```
-
-### Message Contracts
-
-**Service Worker ↔ Popup:**
-
-- `SYNC_STATUS`: Broadcast sync state (idle, syncing, error)
-- `NEW_EMAILS`: Broadcast processed emails with summaries and labels
-- `TRIGGER_SYNC_NOW`: Manual sync request from popup
-- `CLEAR_HISTORY`: Clear stored history on user request
-
-**Service Worker ↔ Offscreen:**
-
-- `PROCESS_EMAIL`: Send email body for NLP pre-filtering
-- `PROCESSED_EMAIL_RESULT`: Return filtered text, labels, and metadata
 
 ## Setup
 
@@ -148,7 +95,7 @@ npm run format
 
 **Raw email from Gmail API:**
 
-```
+```txt
 Subject: Action Required: Q1 Budget Review
 From: manager@company.com
 Body:
@@ -181,7 +128,7 @@ Body:
 
 **After Wink NLP pre-filtering:**
 
-```
+```txt
 Q1 budget review. Please review the attached spreadsheet and confirm your
 department's headcount needs by Friday, March 15th. Action items:
 - Review budget breakdown
@@ -194,7 +141,7 @@ Dropped blocks: ["greeting", "signature", "legal_footer", "chatter"]
 
 **After Gemini Nano summarization:**
 
-```
+```txt
 TLDR: Manager needs Q1 budget review + headcount forecast by March 15.
 
 Action items:
@@ -207,7 +154,7 @@ Confidence: high (clear deadline and action items)
 
 **Rendered in popup:**
 
-```
+```txt
 ┌────────────────────────────────────────────────────────────────┐
 │ From: manager@company.com                                      │
 │ Subject: Action Required: Q1 Budget Review                     │
@@ -221,39 +168,7 @@ Confidence: high (clear deadline and action items)
 └────────────────────────────────────────────────────────────────┘
 ```
 
-## Implementation Notes
-
-### Why Two-Stage NLP?
-
-1. **Wink (deterministic, cheap)**: Removes boilerplate using patterns. ~100ms per email.
-2. **Gemini Nano (statistical, expensive in tokens)**: Summarizes filtered content only. ~300ms per email + token cost.
-
-**Benefit**: By pre-filtering with Wink, you reduce token consumption to Gemini by 40-60%, cutting both cost and latency.
-
-### Why Offscreen Document?
-
-Chrome Extension restrictions prevent running complex DOM-dependent libraries in service workers. The offscreen document:
-
-- Runs in a sandbox with access to `document`
-- Enables Wink NLP (which internally uses the DOM for text parsing)
-- Stays lightweight and isolated from the main UI
-- Communicates via type-safe message passing
-
-### Pattern Design Philosophy
-
-Email patterns (in `lib/nlp/emailPatterns.ts`) mix:
-
-- **Literal tokens**: `[best] [regards]`, `[unsubscribe]`
-- **POS tags**: `[VERB]`, `[NOUN]`, `[DATE]` (from Wink's Universal POS tagset)
-- **Negation patterns**: `[|ADJ]` (optional adjective)
-
-This allows surgical pattern matching without full regex complexity:
-
-- `[by] DATE` matches "by March 15" or "by 2026-03-15"
-- `[sent] [from] [my] [NOUN]` matches "sent from my iPhone", "sent from my desktop"
-- `[can] [you] [please] [VERB]` matches "can you please review", "can you please approve", etc.
-
-For production, you can:
+Optional:
 
 1. Add company-specific patterns (e.g., internal email signatures)
 2. Tune pattern weights (some patterns more important than others)
