@@ -21,6 +21,23 @@
       <button id="syncNowBtn" class="btn btn-primary">Sync Now</button>
     </div>
 
+    <div class="privacy-section">
+      <div class="privacy-header">
+        <span class="privacy-title">NLP daemon / Local storage</span>
+        <label class="switch">
+          <input type="checkbox" id="nlpToggle" />
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="privacy-meta">
+        <span id="daemonState" class="privacy-state">Daemon: Unknown</span>
+        <span id="storageStats" class="privacy-stats">0 emails stored</span>
+      </div>
+      <button id="deleteAllDataBtn" class="btn btn-secondary btn-danger">
+        Delete all stored data
+      </button>
+    </div>
+
     <div class="emails-section">
       <h2>Recent Emails</h2>
       <div id="emailsList" class="emails-list"></div>

@@ -10,10 +10,16 @@ export const CLEAR_HISTORY = 'CLEAR_HISTORY'
 export const PROCESS_EMAIL = 'PROCESS_EMAIL' as const
 export const PROCESSED_EMAIL_RESULT = 'PROCESSED_EMAIL_RESULT'
 
+export const PRIVACY_STATUS = 'PRIVACY_STATUS';
+export const REQUEST_PRIVACY_STATUS = 'REQUEST_PRIVACY_STATUS';
+export const TOGGLE_NLP_STORAGE = 'TOGGLE_NLP_STORAGE';
+export const DELETE_ALL_LOCAL_DATA = 'DELETE_ALL_LOCAL_DATA';
+
 export const STORAGE_KEY_HISTORY_ID = 'gmailHistoryId'
 export const STORAGE_KEY_LAST_SYNC = 'lastSyncTime'
 export const STORAGE_KEY_SYNC_STATUS = 'syncStatus'
 export const STORAGE_KEY_EMAILS = 'gmail_tldr_emails' as const
+export const STORAGE_KEY_NLP_DAEMON_ENABLED = 'nlpDaemonEnabled';
 
 export const ALARM_GMAIL_CHECK = 'checkGmail'
 
@@ -40,7 +46,8 @@ export const PROMPT = `I will provide an email (headers and body). Extract infor
 **B. From the Body:**
 
 * **Content Type:** Whether it's plain text, HTML, or rich text.
-* **Topic/Purpose:**  Analyze the text to determine the main subject of the email. For example, is it a job posting, an update, a request, a notification, etc.?\n* **Key Information:** Identify and extract specific details like:
+* **Topic/Purpose:**  Analyze the text to determine the main subject of the email. For example, is it a job posting, an update, a request, a notification, etc.?
+* **Key Information:** Identify and extract specific details like:
     * **Job Titles:** (If it's a job posting)
     * **Company Names:**
     * **Requirements:** (e.g., skills, experience)

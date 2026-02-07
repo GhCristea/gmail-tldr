@@ -2,7 +2,8 @@ import {
   STORAGE_KEY_EMAILS,
   STORAGE_KEY_HISTORY_ID,
   STORAGE_KEY_LAST_SYNC,
-  STORAGE_KEY_SYNC_STATUS
+  STORAGE_KEY_SYNC_STATUS,
+  STORAGE_KEY_NLP_DAEMON_ENABLED
 } from './constants'
 import type { EmailSummary, SyncStatus } from './types'
 
@@ -46,4 +47,14 @@ export async function appendNewEmails(newEmails: EmailSummary[]) {
 
 export async function clearAll() {
   await chrome.storage.local.clear()
+}
+
+export async function getNlpDaemonEnabled(): Promise<boolean> {
+  const result = await chrome.storage.local.get(STORAGE_KEY_NLP_DAEMON_ENABLED);
+  const value = result[STORAGE_KEY_NLP_DAEMON_ENABLED];
+  return typeof value === 'boolean' ? value : true; // default ON
+}
+
+export async function setNlpDaemonEnabled(enabled: boolean) {
+  await chrome.storage.local.set({ [STORAGE_KEY_NLP_DAEMON_ENABLED]: enabled });
 }

@@ -1,10 +1,24 @@
-import { defineConfig } from 'vite'
-import { crx } from '@crxjs/vite-plugin'
-import manifest from './manifest.json'
+import { defineConfig } from 'vite';
+import { crx } from '@crxjs/vite-plugin';
+import manifest from './manifest.json';
 
 export default defineConfig({
   plugins: [crx({ manifest })],
-  publicDir: 'static',
-  build: { rollupOptions: { input: { offscreen: 'static/offscreen.html', popup: 'static/popup.html' } } },
-  server: { port: 5173, strictPort: true, hmr: { port: 5173 } }
-})
+  build: {
+    outDir: 'dist',
+    rollupOptions: {
+      input: {
+        offscreen: 'static/offscreen.html'
+      }
+    }
+  },
+  optimizeDeps: {
+    include: ['sql.js'],
+    exclude: ['@crxjs/vite-plugin']
+  },
+  resolve: {
+    alias: {
+      '@': '/src'
+    }
+  }
+});
