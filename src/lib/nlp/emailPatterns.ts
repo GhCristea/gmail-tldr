@@ -21,8 +21,8 @@ export const emailPatterns: PatternGroup[] = [
       '[cheers]',
       '[thanks] [again]',
       '[thank] [you] [in] [advance]',
-      '[sent] [from] [my] [NOUN]',
-    ],
+      '[sent] [from] [my] [NOUN]'
+    ]
   },
   {
     name: 'legalFooter',
@@ -34,8 +34,8 @@ export const emailPatterns: PatternGroup[] = [
       '[if] [you] [are] [not] [the] [intended] [recipient]',
       '[do] [not] [disclose] [copy] [or] [distribute]',
       '[please] [delete] [it] [and] [notify]',
-      '[no] [liability] [for] [any] [loss]',
-    ],
+      '[no] [liability] [for] [any] [loss]'
+    ]
   },
   {
     name: 'unsubscribeBlock',
@@ -47,8 +47,8 @@ export const emailPatterns: PatternGroup[] = [
       '[you] [are] [receiving] [this] [email] [because]',
       '[if] [you] [no] [longer] [wish] [to] [receive]',
       '[click] [here] [to] [unsubscribe]',
-      '[marketing] [communications]',
-    ],
+      '[marketing] [communications]'
+    ]
   },
   {
     name: 'deadlinePhrase',
@@ -58,8 +58,8 @@ export const emailPatterns: PatternGroup[] = [
       '[due] [by] DATE',
       '[deadline] [is] DATE',
       '[please] [respond] [by] DATE',
-      '[can] [we] [meet] [on] DATE',
-    ],
+      '[can] [we] [meet] [on] DATE'
+    ]
   },
   {
     name: 'requestPhrase',
@@ -72,8 +72,8 @@ export const emailPatterns: PatternGroup[] = [
       '[please] [let] [me] [know]',
       '[we] [need] [to] [VERB]',
       '[action] [required]',
-      '[requires] [your] [attention]',
-    ],
+      '[requires] [your] [attention]'
+    ]
   },
   {
     name: 'chatter',
@@ -83,8 +83,8 @@ export const emailPatterns: PatternGroup[] = [
       '[happy] [to] [help]',
       '[just] [wanted] [to] [check] [in]',
       '[just] [following] [up]',
-      '[touching] [base]',
-    ],
+      '[touching] [base]'
+    ]
   },
   {
     name: 'transactional',
@@ -95,7 +95,7 @@ export const emailPatterns: PatternGroup[] = [
       '[payment] [receipt]',
       '[your] [subscription] [has] [been] [VERB]',
       '[your] [password] [has] [been] [reset]',
-      '[security] [alert]',
-    ],
-  },
+      '[security] [alert]'
+    ]
+  }
 ]

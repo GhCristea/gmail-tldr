@@ -8,7 +8,7 @@ import {
   PROCESS_EMAIL,
   PROCESSED_EMAIL_RESULT,
   OFFSCREEN_DOCUMENT_PATH,
-  OFFSCREEN_REASON,
+  OFFSCREEN_REASON
 } from './lib/constants.js'
 import type { Message, EmailSummary, ProcessedEmailResult } from './lib/types.js'
 import { listenForMessages, sendMessage } from './lib/messaging.js'
@@ -48,15 +48,15 @@ listenForMessages<typeof POPUP, typeof SERVICE_WORKER>((message) => {
 async function ensureOffscreenDocument() {
   try {
     const clients = await chrome.runtime.getContexts({
-      contextTypes: ['OFFSCREEN_DOCUMENT'],
+      contextTypes: [chrome.runtime.ContextType.OFFSCREEN_DOCUMENT]
     })
 
-    if (clients.length === 0) {
+    if (!clients || !clients.length) {
       logger.log('Creating offscreen document...')
       await chrome.offscreen.createDocument({
         url: OFFSCREEN_DOCUMENT_PATH,
         reasons: [OFFSCREEN_REASON as chrome.offscreen.Reason],
-        justification: 'Email pre-processing and NLP filtering via Wink',
+        justification: 'Email pre-processing and NLP filtering via Wink'
       })
       logger.log('Offscreen document created')
     }
@@ -69,13 +69,16 @@ async function ensureOffscreenDocument() {
  * Send email body to offscreen for pre-processing
  * Returns filtered text + labels, or null on error
  */
-async function preprocessEmailViaOffscreen(emailId: string, emailText: string): Promise<ProcessedEmailResult | null> {
+async function preprocessEmailViaOffscreen(
+  emailId: string,
+  emailText: string
+): Promise<ProcessedEmailResult | null> {
   try {
     await ensureOffscreenDocument()
 
     const response = await sendMessage<typeof SERVICE_WORKER, typeof OFFSCREEN>({
       type: PROCESS_EMAIL,
-      data: { id: emailId, text: emailText },
+      data: { id: emailId, text: emailText }
     })
 
     // The offscreen sends back PROCESSED_EMAIL_RESULT
@@ -143,7 +146,7 @@ async function checkGmailForNewMessages(interactive: boolean = false) {
           logger.log('Email extracted:', {
             subject: emailData.subject,
             from: emailData.from,
-            snippetLength: emailData.snippet?.length,
+            snippetLength: emailData.snippet?.length
           })
 
           // Pre-process email body via offscreen (Wink NLP filtering)
@@ -154,13 +157,15 @@ async function checkGmailForNewMessages(interactive: boolean = false) {
             logger.log(`Calling Gemini Nano for email ${messageId}...`)
             const summaryResult = await gemini.summarize(preprocessed.tokens.join(' '), {
               subject: emailData.subject,
-              from: emailData.from,
+              from: emailData.from
             })
 
             // Attach summary and NLP labels to email
-            ;(emailData as any).summary = summaryResult.text
-            ;(emailData as any).nlpLabels = preprocessed.entities
-            ;(emailData as any).tokensUsed = summaryResult.tokensUsed
+            Object.assign(emailData, {
+              summary: summaryResult.text,
+              nlpLabels: preprocessed.entities,
+              tokensUsed: summaryResult.tokensUsed
+            })
           }
 
           newEmails.push(emailData)
@@ -183,7 +188,7 @@ async function checkGmailForNewMessages(interactive: boolean = false) {
         type: 'basic',
         iconUrl: 'icon128.png',
         title: 'Gmail TLDR',
-        message: `${newEmails.length} new email(s) processed`,
+        message: `${newEmails.length} new email(s) processed`
       })
     }
 

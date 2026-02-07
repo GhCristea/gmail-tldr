@@ -1,8 +1,10 @@
 import type { Message, Sender, Receiver } from './types.js'
 
-export function sendMessage<From extends Sender = Sender, To extends Receiver<From> = Receiver<From>>(
-  message: Message<From, To>
-) {
+export function sendMessage<
+  From extends Sender = Sender,
+  To extends Receiver<From> = Receiver<From>,
+  Response = unknown
+>(message: Message<From, To>): Promise<Response> {
   return chrome.runtime.sendMessage(message)
 }
 

@@ -55,12 +55,14 @@ Gmail API
 ### Message Contracts
 
 **Service Worker ↔ Popup:**
+
 - `SYNC_STATUS`: Broadcast sync state (idle, syncing, error)
 - `NEW_EMAILS`: Broadcast processed emails with summaries and labels
 - `TRIGGER_SYNC_NOW`: Manual sync request from popup
 - `CLEAR_HISTORY`: Clear stored history on user request
 
 **Service Worker ↔ Offscreen:**
+
 - `PROCESS_EMAIL`: Send email body for NLP pre-filtering
 - `PROCESSED_EMAIL_RESULT`: Return filtered text, labels, and metadata
 
@@ -111,38 +113,40 @@ npm run format
 ### Example: Email Processing Flow
 
 **Raw email from Gmail API:**
+
 ```
 Subject: Action Required: Q1 Budget Review
 From: manager@company.com
 Body:
   Hi John,
-  
+
   Hope you are doing well. I wanted to circle back on the Q1 budget review.
-  
+
   Please review the attached spreadsheet and confirm your department's headcount
   needs by Friday, March 15th.
-  
+
   Action items:
   - Review budget breakdown
   - Update headcount forecast
   - Reply with approval
-  
+
   Thanks for your quick turnaround on this.
-  
+
   Best regards,
   Sarah
   Manager, Finance
-  
+
   --
   This email and any attachments may contain confidential information intended
   solely for the use of the addressee. If you are not the intended recipient,
   please delete it and notify the sender.
-  
+
   [Company Legal Footer]
   [Unsubscribe]
 ```
 
 **After Wink NLP pre-filtering:**
+
 ```
 Q1 budget review. Please review the attached spreadsheet and confirm your
 department's headcount needs by Friday, March 15th. Action items:
@@ -155,6 +159,7 @@ Dropped blocks: ["greeting", "signature", "legal_footer", "chatter"]
 ```
 
 **After Gemini Nano summarization:**
+
 ```
 TLDR: Manager needs Q1 budget review + headcount forecast by March 15.
 
@@ -167,6 +172,7 @@ Confidence: high (clear deadline and action items)
 ```
 
 **Rendered in popup:**
+
 ```
 ┌────────────────────────────────────────────────────────────────┐
 │ From: manager@company.com                                      │
@@ -193,6 +199,7 @@ Confidence: high (clear deadline and action items)
 ### Why Offscreen Document?
 
 Chrome Extension restrictions prevent running complex DOM-dependent libraries in service workers. The offscreen document:
+
 - Runs in a sandbox with access to `document`
 - Enables Wink NLP (which internally uses the DOM for text parsing)
 - Stays lightweight and isolated from the main UI
@@ -201,16 +208,19 @@ Chrome Extension restrictions prevent running complex DOM-dependent libraries in
 ### Pattern Design Philosophy
 
 Email patterns (in `lib/nlp/emailPatterns.ts`) mix:
+
 - **Literal tokens**: `[best] [regards]`, `[unsubscribe]`
 - **POS tags**: `[VERB]`, `[NOUN]`, `[DATE]` (from Wink's Universal POS tagset)
 - **Negation patterns**: `[|ADJ]` (optional adjective)
 
 This allows surgical pattern matching without full regex complexity:
+
 - `[by] DATE` matches "by March 15" or "by 2026-03-15"
 - `[sent] [from] [my] [NOUN]` matches "sent from my iPhone", "sent from my desktop"
 - `[can] [you] [please] [VERB]` matches "can you please review", "can you please approve", etc.
 
 For production, you can:
+
 1. Add company-specific patterns (e.g., internal email signatures)
 2. Tune pattern weights (some patterns more important than others)
 3. Add heuristic scoring to skip Gemini entirely for obvious newsletters
