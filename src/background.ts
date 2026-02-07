@@ -14,7 +14,7 @@ import type { Message, EmailSummary, ProcessedEmailResult } from './lib/types.js
 import { listenForMessages, sendMessage } from './lib/messaging.js'
 import { logger } from './lib/logger.js'
 import { getAuthToken, getUserProfile, getHistoryChanges, getFullMessage, extractEmailData } from './lib/gmail.js'
-import { getStoredHistoryId, saveHistoryId, setSyncStatus } from './lib/storage.js'
+import { getStoredHistoryId, saveHistoryId, setSyncStatus, appendNewEmails, getSyncStatus } from './lib/storage.js'
 import { GeminiNanoService } from './lib/ai/gemini.js'
 
 const processedMessageIds = new Set<string>()
@@ -26,13 +26,13 @@ chrome.runtime.onInstalled.addListener(() => {
   logger.log('Extension installed. Starting Gmail polling...')
 })
 
-chrome.alarms.onAlarm.addListener((alarm) => {
+chrome.alarms.onAlarm.addListener(alarm => {
   if (alarm.name === ALARM_GMAIL_CHECK) {
     void checkGmailForNewMessages(false)
   }
 })
 
-listenForMessages<typeof POPUP, typeof SERVICE_WORKER>((message) => {
+listenForMessages<typeof POPUP, typeof SERVICE_WORKER>(message => {
   if (message.type === 'TRIGGER_SYNC_NOW') {
     logger.log('Manual sync triggered by popup')
     void checkGmailForNewMessages(true)
@@ -42,9 +42,6 @@ listenForMessages<typeof POPUP, typeof SERVICE_WORKER>((message) => {
   }
 })
 
-/**
- * Ensure offscreen document is created (if needed)
- */
 async function ensureOffscreenDocument() {
   try {
     const clients = await chrome.runtime.getContexts({
@@ -65,10 +62,6 @@ async function ensureOffscreenDocument() {
   }
 }
 
-/**
- * Send email body to offscreen for pre-processing
- * Returns filtered text + labels, or null on error
- */
 async function preprocessEmailViaOffscreen(
   emailId: string,
   emailText: string
@@ -81,7 +74,6 @@ async function preprocessEmailViaOffscreen(
       data: { id: emailId, text: emailText }
     })
 
-    // The offscreen sends back PROCESSED_EMAIL_RESULT
     if (response && typeof response === 'object' && 'type' in response) {
       const msg = response as Message<typeof OFFSCREEN, typeof SERVICE_WORKER>
       if (msg.type === PROCESSED_EMAIL_RESULT && msg.data) {
@@ -102,6 +94,12 @@ async function preprocessEmailViaOffscreen(
 
 async function checkGmailForNewMessages(interactive: boolean = false) {
   try {
+    const currentStatus = await getSyncStatus()
+    if (currentStatus === 'syncing') {
+      logger.log('Sync already in progress, skipping.')
+      return
+    }
+
     await setSyncStatus('syncing')
     logger.log('Starting email sync...')
 
@@ -152,11 +150,12 @@ async function checkGmailForNewMessages(interactive: boolean = false) {
             snippetLength: emailData.snippet?.length
           })
 
-          // Pre-process email body via offscreen (Wink NLP filtering)
-          const preprocessed = await preprocessEmailViaOffscreen(messageId, emailData.snippet || '')
+          const preprocessed = await preprocessEmailViaOffscreen(
+            messageId,
+            emailData.body || emailData.snippet || ''
+          )
 
           if (preprocessed && preprocessed.tokens.length > 0) {
-            // Gemini Nano: Summarize filtered text
             const filteredText = preprocessed.tokens.join(' ')
             logger.log(`Calling Gemini Nano for email ${messageId}...`)
             const summaryResult = await gemini.summarize(filteredText, {
@@ -164,7 +163,6 @@ async function checkGmailForNewMessages(interactive: boolean = false) {
               from: emailData.from
             })
 
-            // Attach summary and NLP labels to email
             Object.assign(emailData, {
               summary: summaryResult.text,
               nlpLabels: preprocessed.entities,
@@ -189,6 +187,7 @@ async function checkGmailForNewMessages(interactive: boolean = false) {
     }
 
     if (newEmails.length > 0) {
+      await appendNewEmails(newEmails)
       const message: Message<typeof SERVICE_WORKER, typeof POPUP> = { type: NEW_EMAILS, data: newEmails }
       await broadcastToPopup(message)
 
@@ -223,7 +222,7 @@ setInterval(
       const array = Array.from(processedMessageIds)
       processedMessageIds.clear()
 
-      array.slice(-2500).forEach((id) => processedMessageIds.add(id))
+      array.slice(-2500).forEach(id => processedMessageIds.add(id))
       logger.log('Trimmed processed message cache')
     }
   },

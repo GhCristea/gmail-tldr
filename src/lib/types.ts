@@ -18,6 +18,7 @@ export type EmailSummary = {
   to: string
   date: string
   snippet: string
+  body?: string
   labels?: string[]
 }
 

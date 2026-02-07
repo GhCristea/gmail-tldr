@@ -8,7 +8,7 @@ import {
 } from './lib/constants.js'
 import type { EmailSummary, SyncStatus } from './lib/types.js'
 import { sendMessage, listenForMessages } from './lib/messaging.js'
-import { getSyncStatus } from './lib/storage.js'
+import { getSyncStatus, getStoredEmails } from './lib/storage.js'
 import { logger } from './lib/logger.js'
 
 const DOM = {
@@ -26,7 +26,7 @@ function init() {
   DOM.syncNowBtn.addEventListener('click', () => void triggerManualSync())
   DOM.clearBtn.addEventListener('click', () => void clearHistory())
 
-  listenForMessages<typeof SERVICE_WORKER, typeof POPUP>((message) => {
+  listenForMessages<typeof SERVICE_WORKER, typeof POPUP>(message => {
     if (message.type === SYNC_STATUS) {
       if (message.data) {
         updateStatus(message.data.status)
@@ -45,6 +45,11 @@ async function loadInitialState() {
   try {
     const status = await getSyncStatus()
     updateStatus(status)
+
+    const storedEmails = await getStoredEmails()
+    if (storedEmails.length > 0) {
+      displayEmails(storedEmails)
+    }
   } catch (error) {
     logger.error('Error loading initial state:', error)
   }
@@ -54,8 +59,15 @@ function updateStatus(status: SyncStatus) {
   DOM.statusIndicator.className = `status-indicator ${status}`
 
   const statusText = { idle: 'Idle', syncing: 'Syncing...', error: 'Error' }
-
   DOM.statusText.textContent = statusText[status]
+
+  if (status === 'syncing') {
+    DOM.syncNowBtn.disabled = true
+    DOM.syncNowBtn.textContent = 'Syncing...'
+  } else {
+    DOM.syncNowBtn.disabled = false
+    DOM.syncNowBtn.textContent = 'Sync Now'
+  }
 }
 
 function displayEmails(emails: EmailSummary[]) {
@@ -72,7 +84,7 @@ function displayEmails(emails: EmailSummary[]) {
 
   DOM.emptyState.style.display = 'none'
 
-  currentEmails.reverse().forEach((email) => {
+  currentEmails.reverse().forEach(email => {
     const emailEl = createEmailElement(email)
     DOM.emailsList.appendChild(emailEl)
   })

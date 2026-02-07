@@ -13,6 +13,7 @@ export const PROCESSED_EMAIL_RESULT = 'PROCESSED_EMAIL_RESULT'
 export const STORAGE_KEY_HISTORY_ID = 'gmailHistoryId'
 export const STORAGE_KEY_LAST_SYNC = 'lastSyncTime'
 export const STORAGE_KEY_SYNC_STATUS = 'syncStatus'
+export const STORAGE_KEY_EMAILS = 'gmail_tldr_emails' as const
 
 export const ALARM_GMAIL_CHECK = 'checkGmail'
 

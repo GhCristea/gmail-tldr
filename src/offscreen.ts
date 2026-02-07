@@ -16,9 +16,7 @@ listenForMessages<typeof SERVICE_WORKER, typeof OFFSCREEN>((message, _sender, se
 
 function processEmail(id: string, text: string, sendResponse: (response?: unknown) => void) {
   logger.log(`[OFFSCREEN] Processing email ${id}...`)
-
   try {
-    // Pre-process: Wink-based filtering to remove noise, tag high-signal content
     const { email_text_filtered, email_labels, droppedSpans } = preprocessEmailForLLM(text)
 
     logger.log(`[OFFSCREEN] Email ${id} filtered`, {
@@ -29,12 +27,11 @@ function processEmail(id: string, text: string, sendResponse: (response?: unknow
       droppedSpansCount: droppedSpans.length
     })
 
-    // Return filtered text + labels to service worker
     const result = {
       id,
       tokens: email_text_filtered.split(/\s+/),
       entities: email_labels,
-      pos: droppedSpans.map((s) => s.type)
+      pos: droppedSpans.map(s => s.type)
     }
 
     sendResponse({ type: PROCESSED_EMAIL_RESULT, data: result })
@@ -42,7 +39,6 @@ function processEmail(id: string, text: string, sendResponse: (response?: unknow
     logger.log(`[OFFSCREEN] Email ${id} processed and result sent back`)
   } catch (error) {
     logger.error(`[OFFSCREEN] Error processing email ${id}:`, error)
-    // Send error result back
     sendResponse({ type: PROCESSED_EMAIL_RESULT, data: null, error: String(error) })
   }
 }
