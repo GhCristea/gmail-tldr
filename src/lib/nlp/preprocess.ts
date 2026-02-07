@@ -1,4 +1,5 @@
 import { logger } from '../logger.js'
+import { getNLP } from './wink.js'
 
 export interface PreprocessResult {
   email_text_filtered: string
@@ -7,56 +8,95 @@ export interface PreprocessResult {
 }
 
 export function preprocessEmailForLLM(rawEmailText: string): PreprocessResult {
-  logger.log('Pre-processing email for LLM (mock implementation)...')
+  logger.log('Pre-processing email with Wink NLP...')
 
+  const nlp = getNLP()
   const droppedSpans: Array<{ type: string; text: string }> = []
-  let filtered = rawEmailText
-
-  if (/<[a-z][\s\S]*>/i.test(filtered) || /&[a-z]+;/i.test(filtered)) {
+  
+  // 0. Clean HTML artifacts first (Wink works best on clean text)
+  let cleanText = rawEmailText
+  if (/<[a-z][\s\S]*>/i.test(cleanText) || /&[a-z]+;/i.test(cleanText)) {
     try {
       const parser = new DOMParser()
-      const doc = parser.parseFromString(filtered, 'text/html')
-      filtered = doc.body.textContent || filtered
+      const doc = parser.parseFromString(cleanText, 'text/html')
+      cleanText = doc.body.textContent || cleanText
     } catch (e) {
-      logger.warn('Failed to parse HTML in offscreen:', e)
+      logger.warn('Failed to parse HTML:', e)
     }
   }
+  cleanText = cleanText.replace(/\s+/g, ' ').trim()
 
-  const signaturePatterns = [/best regards[\s\S]*/i, /kind regards[\s\S]*/i, /thanks[\s\S]*cheers/i]
-  for (const pattern of signaturePatterns) {
-    const match = filtered.match(pattern)
-    if (match) {
-      droppedSpans.push({ type: 'signatureBlock', text: match[0].substring(0, 50) })
-      filtered = filtered.replace(pattern, '')
+  // 1. Ingest text into Wink
+  const doc = nlp.readDoc(cleanText)
+
+  // 2. Identify and drop noise entities
+  // Signatures often happen at the end and contain names/titles
+  // We'll use a heuristic: last few sentences if they look like contact info
+  // For now, we rely on Custom Entities if we defined them for signatures
+  // But regex is still faster for block-level removal, so we mix both.
+  
+  // Let's use Wink's sentence segmentation to drop "Chatter"
+  // e.g. "Hope you are well", "Sent from my iPhone"
+  const sentences = doc.sentences().out()
+  const keptSentences: string[] = []
+  
+  sentences.forEach((s) => {
+    const sentDoc = nlp.readDoc(s)
+    
+    // Drop "Greeting" chatter: "Hi John," "Dear Team,"
+    if (keptSentences.length === 0 && /^(hi|hello|dear|hey|good morning|greetings)\b/i.test(s)) {
+      droppedSpans.push({ type: 'greeting', text: s })
+      return
     }
-  }
 
-  const legalPatterns = [/this email.*confidential/i, /if you are not the intended recipient/i]
-  for (const pattern of legalPatterns) {
-    const match = filtered.match(pattern)
-    if (match) {
-      droppedSpans.push({ type: 'legalFooter', text: match[0].substring(0, 50) })
-      filtered = filtered.replace(pattern, '')
+    // Drop "Closing" chatter: "Best," "Regards," "Thanks,"
+    if (/^(best|kind|warm)?\s*(regards|wishes|cheers|thanks|sincerely),?$/i.test(s)) {
+      droppedSpans.push({ type: 'closing', text: s })
+      return
     }
-  }
 
-  filtered = filtered.replace(/\s+/g, ' ').trim()
+    // Drop "Device" chatter
+    if (/sent from my/i.test(s)) {
+      droppedSpans.push({ type: 'device_signature', text: s })
+      return
+    }
 
-  const labels: string[] = []
-  if (/by\s+\d{1,2}[\s\-/]\d{1,2}|deadline|due\s+by/i.test(rawEmailText)) {
-    labels.push('possible_deadline')
-  }
-  if (/unsubscribe|manage.*preferences|marketing.*email/i.test(rawEmailText)) {
-    labels.push('newsletter')
-  }
-  if (/order.*confirmation|invoice|payment.*receipt|subscription/i.test(rawEmailText)) {
-    labels.push('transactional')
-  }
-  if (/can you|could you|please review|please approve|action required/i.test(rawEmailText)) {
-    labels.push('actionable')
-  }
+    keptSentences.push(s)
+  })
 
-  logger.log('Email pre-processed', { labelsCount: labels.length, droppedCount: droppedSpans.length })
+  // 3. Extract Signals using Custom Entities & Logic
+  const labels: Set<string> = new Set()
+  const entities = doc.customEntities().out()
+  
+  // Check our "Learned" entities
+  entities.forEach((e) => {
+    if (doc.customEntities().item(0).type() === 'deadline') labels.add('possible_deadline')
+    if (doc.customEntities().item(0).type() === 'action_verb') labels.add('actionable')
+  })
 
-  return { email_text_filtered: filtered, email_labels: labels, droppedSpans }
+  // Additional heuristic: Questions are often actionable
+  doc.sentences().each((s) => {
+    if (s.out().trim().endsWith('?')) {
+      // Check if it starts with a verb or auxiliary
+      // Wink POS: AUX = auxiliary verb
+      const firstToken = s.tokens().item(0)
+      if (firstToken.pos() === 'AUX' || firstToken.pos() === 'VERB') {
+        labels.add('actionable')
+      }
+    }
+  })
+
+  const filteredText = keptSentences.join(' ')
+
+  logger.log('Wink analysis complete', { 
+    originalSentences: sentences.length,
+    keptSentences: keptSentences.length,
+    labels: Array.from(labels) 
+  })
+
+  return { 
+    email_text_filtered: filteredText, 
+    email_labels: Array.from(labels), 
+    droppedSpans 
+  }
 }
