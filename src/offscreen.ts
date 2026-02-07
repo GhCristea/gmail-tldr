@@ -6,15 +6,9 @@ import {
 } from './lib/constants.js'
 import { listenForMessages, sendMessage } from './lib/messaging.js'
 import { logger } from './lib/logger.js'
-
-// TODO: Import Wink NLP and model
-// import winkNLP from 'wink-nlp';
-// import model from 'wink-eng-lite-web-model';
+import { preprocessEmailForLLM } from './lib/nlp/preprocess.js'
 
 logger.log('Offscreen document initialized')
-
-// Initialize Wink NLP (Placeholder)
-// const nlp = winkNLP(model);
 
 listenForMessages<typeof SERVICE_WORKER, typeof OFFSCREEN>(async (message) => {
   if (message.type === PROCESS_EMAIL) {
@@ -25,29 +19,41 @@ listenForMessages<typeof SERVICE_WORKER, typeof OFFSCREEN>(async (message) => {
 })
 
 async function processEmail(id: string, text: string) {
-  logger.log(`Processing email ${id} in offscreen document...`)
+  logger.log(`[OFFSCREEN] Processing email ${id}...`)
 
   try {
-    // Placeholder for Wink NLP processing
-    // const doc = nlp.readDoc(text);
-    // const entities = doc.entities().out();
-    // const pos = doc.tokens().out(nlp.its.pos);
+    // Pre-process: Wink-based filtering to remove noise, tag high-signal content
+    const { email_text_filtered, email_labels, droppedSpans } = await preprocessEmailForLLM(text)
 
-    // Mock result for now
+    logger.log(`[OFFSCREEN] Email ${id} filtered`, {
+      originalLength: text.length,
+      filteredLength: email_text_filtered.length,
+      reduction: Math.round(((text.length - email_text_filtered.length) / text.length) * 100),
+      labelsCount: email_labels.length,
+      droppedSpansCount: droppedSpans.length,
+    })
+
+    // Return filtered text + labels to service worker
     const result = {
       id,
-      tokens: text.split(' '),
-      entities: [],
-      pos: []
+      tokens: email_text_filtered.split(/\s+/),
+      entities: email_labels,
+      pos: droppedSpans.map((s) => s.type),
     }
 
     await sendMessage<typeof OFFSCREEN, typeof SERVICE_WORKER>({
       type: PROCESSED_EMAIL_RESULT,
-      data: result
+      data: result,
     })
 
-    logger.log(`Email ${id} processed and result sent back`)
+    logger.log(`[OFFSCREEN] Email ${id} processed and result sent back`)
   } catch (error) {
-    logger.error(`Error processing email ${id}:`, error)
+    logger.error(`[OFFSCREEN] Error processing email ${id}:`, error)
+    // Send error result back
+    await sendMessage<typeof OFFSCREEN, typeof SERVICE_WORKER>({
+      type: PROCESSED_EMAIL_RESULT,
+      data: null,
+      error: String(error),
+    })
   }
 }
