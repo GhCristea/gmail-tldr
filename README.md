@@ -19,11 +19,19 @@ architecture.
 Service Worker (background.ts)
 ├─ Polls Gmail API every 1 minute
 ├─ Processes new messages via historyId
+├─ Optionally forwards raw email text to Offscreen NLP worker
+├─ Receives filtered/annotated text from NLP worker
+├─ Calls GeminiNanoService for summarization
 └─ Broadcasts updates via typed messages
+
+Offscreen Document (planned)
+├─ Runs Wink NLP with Universal POS
+├─ Extracts entities, topics, and action items from email body
+└─ Returns filtered text + metadata back to Service Worker
 
 Popup (popup.ts)
 ├─ Displays sync status
-├─ Shows processed emails
+├─ Shows processed emails and (future) summaries
 └─ Listens for typed messages from Service Worker
 
 Types (src/lib/types.ts)
@@ -110,8 +118,18 @@ sendMessage<typeof SERVICE_WORKER, typeof POPUP>(POPUP, {
 
 ## Roadmap
 
-- [ ] Offscreen document for DOM parsing if needed
-- [ ] Email classification/summarization
+### Near term (NLP + Gemini pipeline)
+
+- [ ] Add offscreen document for NLP pre-processing of email bodies
+  - Use Wink NLP with Universal POS tagger
+  - Extract entities, topics, action items, and other key signals
+  - Expose a typed message contract between Service Worker and Offscreen document
+- [ ] Integrate `GeminiNanoService` to summarize NLP-filtered text (via `chrome.ai.languageModel`)
+- [ ] Extend `EmailSummary` with structured metadata and a `summary` field
+- [ ] Update popup UI to display summaries and extracted key information instead of raw snippets
+
+### Later
+
 - [ ] Keyboard shortcuts
 - [ ] Custom Gmail label integration
 - [ ] Settings page
