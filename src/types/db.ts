@@ -1,35 +1,30 @@
 /**
- * Key-point structure for email summaries
- */
-export interface EmailKeyPoint {
-  id: string; // UUID
-  emailId: string; // Gmail message ID
-  keyPoint: string; // Extracted key point
-  extractedAt: number; // Unix timestamp
-  source: 'wink-nlp' | 'gemini-nano'; // Which stage extracted it
-  confidence: number; // 0-1
-  tags: string[]; // ["deadline", "actionable", "follow-up"]
-  encryptionNonce?: string; // If encrypted at rest
-}
-
-/**
- * Email metadata for tracking and privacy
+ * Minimal, privacy-aware metadata we persist
  */
 export interface EmailMetadata {
-  emailId: string;
+  messageId: string;  // Gmail message ID
+  threadId: string;
   from: string;
   subject: string;
-  timestamp: number;
-  keyPointCount: number;
-  lastProcessed: number;
+  snippet: string;
+  timestamp: number;  // Unix ms
 }
 
 /**
- * DB stats for privacy audit and dashboard
+ * Full summary record stored in SQLite
  */
-export interface DBStats {
-  totalKeyPoints: number;
-  totalEmails: number;
-  storageUsedBytes: number;
-  oldestEntry: number; // Unix timestamp
+export interface EmailSummaryRecord extends EmailMetadata {
+  summary: string;
+  labels: string[];     // wink/gemini-derived tags
+  tokensUsed: number;
+  processedAt: number;  // Unix ms
+}
+
+/**
+ * Result shape for listing recent summaries
+ */
+export interface RecentSummariesResult {
+  summaries: EmailSummaryRecord[];
+  totalCount: number;
+  lastProcessedAt: number | null;
 }
