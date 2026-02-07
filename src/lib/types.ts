@@ -7,7 +7,11 @@ import type {
   TRIGGER_SYNC_NOW,
   CLEAR_HISTORY,
   PROCESS_EMAIL,
-  PROCESSED_EMAIL_RESULT
+  PROCESSED_EMAIL_RESULT,
+  PRIVACY_STATUS,
+  REQUEST_PRIVACY_STATUS,
+  TOGGLE_NLP_STORAGE,
+  DELETE_ALL_LOCAL_DATA
 } from './constants'
 
 export type EmailSummary = {
@@ -38,9 +42,23 @@ export type MessageMap = {
     [POPUP]:
       | ({ type: typeof SYNC_STATUS } & Payload<{ status: SyncStatus; timestamp: number }>)
       | ({ type: typeof NEW_EMAILS } & Payload<EmailSummary[]>)
+      | ({ type: typeof PRIVACY_STATUS } &
+          Payload<{
+            enabled: boolean;
+            health: 'running' | 'stopped' | 'error';
+            totalStored: number;
+            lastProcessedAt: number | null;
+          }>);
     [OFFSCREEN]: { type: typeof PROCESS_EMAIL } & Payload<ProcessEmailPayload>
   }
-  [POPUP]: { [SERVICE_WORKER]: { type: typeof TRIGGER_SYNC_NOW } | { type: typeof CLEAR_HISTORY } }
+  [POPUP]: {
+    [SERVICE_WORKER]: 
+      | { type: typeof TRIGGER_SYNC_NOW } 
+      | { type: typeof CLEAR_HISTORY }
+      | { type: typeof REQUEST_PRIVACY_STATUS }
+      | ({ type: typeof TOGGLE_NLP_STORAGE } & Payload<{ enabled: boolean }>)
+      | { type: typeof DELETE_ALL_LOCAL_DATA }
+  }
   [OFFSCREEN]: { [SERVICE_WORKER]: { type: typeof PROCESSED_EMAIL_RESULT } & Payload<ProcessedEmailResult> }
 }
 
@@ -49,15 +67,7 @@ export type Receiver<T extends Sender> = keyof MessageMap[T]
 
 export type Message<From extends Sender, To extends Receiver<From> = Receiver<From>> = MessageMap[From][To]
 
-export type GmailHistory = {
-  history?: {
-    id: string
-    messages?: { id: string; threadId: string }[]
-    messagesAdded?: { message: { id: string; threadId: string } }[]
-  }[]
-  nextHistoryId?: string
-  historyId?: string
-}
+export type GmailHistory = {\n  history?: {\n    id: string\n    messages?: { id: string; threadId: string }[]\n    messagesAdded?: { message: { id: string; threadId: string } }[]\n  }[]\n  nextHistoryId?: string\n  historyId?: string\n}
 
 export type GmailMessage = {
   id: string
